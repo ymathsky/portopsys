@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/cpses_po229tqt4f/public_html/qs
+    - export DEPLOYPATH=/home3/portopsy/public_html/qs
     - /bin/cp -R . $DEPLOYPATH
