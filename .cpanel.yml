@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/cpses_po229tqt4f/public_html/qs
-    - /bin/cp -R . $DEPLOYPATH
+    - /bin/find /home/cpses_po229tqt4f/public_html/qs -name "*.php" -exec chmod 644 {} \;
+    - /bin/find /home/cpses_po229tqt4f/public_html/qs -type d -exec chmod 755 {} \;
