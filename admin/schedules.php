@@ -341,6 +341,11 @@ include __DIR__ . '/includes/header.php';
                                 &bull;
                                 <span class="font-mono font-semibold text-gray-700"><?php echo date('H:i', strtotime($ts['departure_time'])); ?></span>
                             </p>
+                            <?php if (!empty($ts['vessel_name'])): ?>
+                            <p class="text-xs text-indigo-600 font-medium mt-0.5">
+                                &#x1F6A2; <?php echo htmlspecialchars($ts['vessel_name']); ?>
+                            </p>
+                            <?php endif; ?>
                             <?php if ($st === 'delayed' && !empty($ts['delay_reason'])): ?>
                             <p class="mt-1 text-xs text-yellow-700 bg-yellow-100 rounded px-2 py-0.5 inline-block">
                                 &#x26A0; <?php echo htmlspecialchars($ts['delay_reason']); ?>
