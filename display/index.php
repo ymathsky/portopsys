@@ -885,8 +885,9 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             btn.innerHTML = '<span>🔊 Audio On</span>';
             btn.classList.add('active');
             // Test speak
-            const testAudio = new Audio(`${BASE_URL}/api/tts-proxy.php?lang=fil&text=${encodeURIComponent('Handa na ang audio. Maligayang pagdating!')}`);
-            testAudio.play().catch(() => announce("Audio enabled"));
+            const testAudio = new Audio(`${BASE_URL}/api/tts-proxy.php?lang=fil&text=${encodeURIComponent('Handa na ang audio.')}`);
+            testAudio.onerror = () => fallbackSpeak('Audio enabled');
+            testAudio.play().catch(() => fallbackSpeak('Audio enabled'));
         } else {
             btn.innerHTML = '<span>🔈 Enable Audio</span>';
             btn.classList.remove('active');
@@ -912,38 +913,34 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     function announceTaglish(tokenNumber, counterName) {
         if (!audioEnabled) return;
 
-        // Parts: [text, lang] — fil = Filipino Google TTS, en = English
         const parts = [
-            [`Attention po.`,                       'en'],
-            [`Token number ${tokenNumber}.`,         'en'],
-            [`Pumunta na po sa ${counterName}.`,     'fil'],
-            [`Salamat po.`,                          'fil'],
+            { text: `Attention po.`,                   lang: 'en'  },
+            { text: `Token number ${tokenNumber}.`,    lang: 'en'  },
+            { text: `Pumunta na po sa ${counterName}.`, lang: 'fil' },
+            { text: `Salamat po.`,                     lang: 'fil' },
         ];
 
-        // Build Audio elements via PHP proxy (real Google Filipino voice)
-        const audios = parts.map(([text, lang]) => {
+        let index = 0;
+
+        function playNext() {
+            if (index >= parts.length) return;
+            const { text, lang } = parts[index];
+            index++;
             const url = `${BASE_URL}/api/tts-proxy.php?lang=${lang}&text=${encodeURIComponent(text)}`;
-            return new Audio(url);
-        });
-
-        // Pre-load all parts then play sequentially
-        let loaded = 0;
-        audios.forEach((a, idx) => {
-            a.addEventListener('canplaythrough', () => {
-                loaded++;
-                if (loaded === audios.length && idx === 0) playPart(0);
-            }, { once: true });
-            a.load();
-        });
-
-        function playPart(i) {
-            if (i >= audios.length) return;
-            audios[i].onended = () => playPart(i + 1);
-            audios[i].play().catch(() => {
-                // Fallback to Web Speech API if proxy fails
-                fallbackSpeak(parts.map(p => p[0]).join(' '));
+            const audio = new Audio(url);
+            audio.onended = playNext;
+            audio.onerror = () => {
+                // Proxy failed — fall back to Web Speech for remaining parts
+                const remaining = parts.slice(index - 1).map(p => p.text).join(' ');
+                fallbackSpeak(remaining);
+            };
+            audio.play().catch(() => {
+                const remaining = parts.slice(index - 1).map(p => p.text).join(' ');
+                fallbackSpeak(remaining);
             });
         }
+
+        playNext();
     }
 
     function fallbackSpeak(text) {
