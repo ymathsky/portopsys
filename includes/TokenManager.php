@@ -94,6 +94,9 @@ class TokenManager {
     private function generateTokenNumber($serviceCode) {
         // Use MAX() to find the highest sequence number used today for this code.
         // The caller holds a GET_LOCK, so this is race-condition-free.
+        // Exclude cancelled tokens so that after an End-of-Day Reset
+        // (which cancels all tokens), the counter restarts from 0001.
+        // Completed/serving/waiting tokens still count to avoid reuse within a session.
         $stmt = $this->db->prepare("
             SELECT COALESCE(
                 MAX(CAST(SUBSTRING_INDEX(token_number, '-', -1) AS UNSIGNED)),
@@ -102,6 +105,7 @@ class TokenManager {
             FROM tokens
             WHERE token_number LIKE CONCAT(?, '-%')
             AND DATE(issued_at) = CURDATE()
+            AND status != 'cancelled'
         ");
         $stmt->execute([$serviceCode]);
         $result  = $stmt->fetch();
