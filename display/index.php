@@ -894,13 +894,10 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
 
     function announce(text) {
         if (!audioEnabled || !window.speechSynthesis) return;
-        // Cancel current speech to avoid queue buildup
         window.speechSynthesis.cancel();
-        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 0.85;
         utterance.pitch = 1.0;
-        // Prefer Filipino/Tagalog voice, fall back to English
         const voices = window.speechSynthesis.getVoices();
         const filVoice = voices.find(v => v.lang.includes('fil')) ||
                          voices.find(v => v.lang.includes('tl'))  ||
@@ -908,8 +905,38 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         const enVoice  = voices.find(v => v.lang.includes('en-US')) ||
                          voices.find(v => v.lang.includes('en-GB'));
         utterance.voice = filVoice || enVoice || null;
-        
         window.speechSynthesis.speak(utterance);
+    }
+
+    function announceTaglish(tokenNumber, counterName) {
+        if (!audioEnabled || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+
+        const voices = window.speechSynthesis.getVoices();
+        const filVoice = voices.find(v => v.lang.includes('fil')) ||
+                         voices.find(v => v.lang.includes('tl'));
+        const enVoice  = voices.find(v => v.lang.includes('en-US')) ||
+                         voices.find(v => v.lang.includes('en-GB'));
+
+        // Speak in 3 sequential parts for natural Taglish flow
+        const parts = [
+            { text: `Attention po.`,                      voice: enVoice  },
+            { text: `Token number ${tokenNumber}.`,       voice: enVoice  },
+            { text: `Pumunta na po sa ${counterName}.`,   voice: filVoice || enVoice },
+            { text: `Salamat po.`,                        voice: filVoice || enVoice },
+        ];
+
+        let i = 0;
+        function speakNext() {
+            if (i >= parts.length) return;
+            const u = new SpeechSynthesisUtterance(parts[i].text);
+            u.rate  = 0.85;
+            u.pitch = 1.0;
+            if (parts[i].voice) u.voice = parts[i].voice;
+            u.onend = () => { i++; speakNext(); };
+            window.speechSynthesis.speak(u);
+        }
+        speakNext();
     }
     
     // Update date and time
@@ -996,7 +1023,8 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                 const lastKey  = lastAnnouncedToken[counter.id] || '';
                 if (lastKey !== trackKey) {
                     setTimeout(() => {
-                        announce(`Numero ${counter.current_token}. Mangyaring pumunta na po sa ${counter.counter_name || 'Counter ' + counter.counter_number}. Salamat po.`);
+                        const cname = counter.counter_name || 'Counter ' + counter.counter_number;
+                        announceTaglish(counter.current_token, cname);
                     }, 500);
                     lastAnnouncedToken[counter.id] = trackKey;
                 }
