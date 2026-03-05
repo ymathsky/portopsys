@@ -772,6 +772,8 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         }
         
     </style>
+    <!-- ResponsiveVoice: natural Filipino Female TTS -->
+    <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 </head>
 <body>
     <!-- Maintenance Overlay -->
@@ -885,9 +887,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             btn.innerHTML = '<span>🔊 Audio On</span>';
             btn.classList.add('active');
             // Test speak
-            const testAudio = new Audio(`${BASE_URL}/api/tts-proxy.php?lang=fil&text=${encodeURIComponent('Handa na ang audio.')}`);
-            testAudio.onerror = () => fallbackSpeak('Audio enabled');
-            testAudio.play().catch(() => fallbackSpeak('Audio enabled'));
+            rvSpeak('Handa na ang audio. Maligayang pagdating!');
         } else {
             btn.innerHTML = '<span>🔈 Enable Audio</span>';
             btn.classList.remove('active');
@@ -910,44 +910,46 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         window.speechSynthesis.speak(utterance);
     }
 
+    function rvSpeak(text, lang) {
+        // Use ResponsiveVoice Filipino Female; fallback to Web Speech
+        if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
+            const voice = (lang === 'en') ? 'UK English Female' : 'Filipino Female';
+            responsiveVoice.speak(text, voice, { rate: 0.9, pitch: 1.1, volume: 1 });
+        } else {
+            fallbackSpeak(text);
+        }
+    }
+
     function announceTaglish(tokenNumber, counterName) {
         if (!audioEnabled) return;
-
-        const parts = [
-            { text: `Attention po.`,                   lang: 'en'  },
-            { text: `Token number ${tokenNumber}.`,    lang: 'en'  },
-            { text: `Pumunta na po sa ${counterName}.`, lang: 'fil' },
-            { text: `Salamat po.`,                     lang: 'fil' },
-        ];
-
-        let index = 0;
-
-        function playNext() {
-            if (index >= parts.length) return;
-            const { text, lang } = parts[index];
-            index++;
-            const url = `${BASE_URL}/api/tts-proxy.php?lang=${lang}&text=${encodeURIComponent(text)}`;
-            const audio = new Audio(url);
-            audio.onended = playNext;
-            audio.onerror = () => {
-                // Proxy failed — fall back to Web Speech for remaining parts
-                const remaining = parts.slice(index - 1).map(p => p.text).join(' ');
-                fallbackSpeak(remaining);
-            };
-            audio.play().catch(() => {
-                const remaining = parts.slice(index - 1).map(p => p.text).join(' ');
-                fallbackSpeak(remaining);
-            });
+        if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
+            fallbackSpeak(`Token number ${tokenNumber}. Pumunta na po sa ${counterName}. Salamat po.`);
+            return;
         }
 
-        playNext();
+        // Queue parts sequentially using onend callback
+        const parts = [
+            { text: `Attention po.`,                    lang: 'fil' },
+            { text: `Token number ${tokenNumber}.`,     lang: 'en'  },
+            { text: `Pumunta na po sa ${counterName}.`, lang: 'fil' },
+            { text: `Salamat po.`,                      lang: 'fil' },
+        ];
+
+        let i = 0;
+        function next() {
+            if (i >= parts.length) return;
+            const { text, lang } = parts[i++];
+            const voice = (lang === 'en') ? 'UK English Female' : 'Filipino Female';
+            responsiveVoice.speak(text, voice, { rate: 0.9, pitch: 1.1, volume: 1, onend: next });
+        }
+        next();
     }
 
     function fallbackSpeak(text) {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.85; u.lang = 'en-US';
+        u.rate = 0.85; u.lang = 'fil-PH';
         window.speechSynthesis.speak(u);
     }
     
