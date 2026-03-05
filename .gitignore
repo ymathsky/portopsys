@@ -1,0 +1,21 @@
+# Sensitive config — never push to remote
+config/env.php
+
+# Backup files
+*.backup
+*.bak
+*.backup_*
+index.php.backup_*
+
+# Uploads (user files)
+uploads/*
+!uploads/videos/.htaccess
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+
+# Logs
+*.log
