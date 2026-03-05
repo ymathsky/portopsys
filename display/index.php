@@ -885,7 +885,8 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             btn.innerHTML = '<span>🔊 Audio On</span>';
             btn.classList.add('active');
             // Test speak
-            announce("Handa na ang audio. Maligayang pagdating!");
+            const testAudio = new Audio(`${BASE_URL}/api/tts-proxy.php?lang=fil&text=${encodeURIComponent('Handa na ang audio. Maligayang pagdating!')}`);
+            testAudio.play().catch(() => announce("Audio enabled"));
         } else {
             btn.innerHTML = '<span>🔈 Enable Audio</span>';
             btn.classList.remove('active');
@@ -909,34 +910,48 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     }
 
     function announceTaglish(tokenNumber, counterName) {
-        if (!audioEnabled || !window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
+        if (!audioEnabled) return;
 
-        const voices = window.speechSynthesis.getVoices();
-        const filVoice = voices.find(v => v.lang.includes('fil')) ||
-                         voices.find(v => v.lang.includes('tl'));
-        const enVoice  = voices.find(v => v.lang.includes('en-US')) ||
-                         voices.find(v => v.lang.includes('en-GB'));
-
-        // Speak in 3 sequential parts for natural Taglish flow
+        // Parts: [text, lang] — fil = Filipino Google TTS, en = English
         const parts = [
-            { text: `Attention po.`,                      voice: enVoice  },
-            { text: `Token number ${tokenNumber}.`,       voice: enVoice  },
-            { text: `Pumunta na po sa ${counterName}.`,   voice: filVoice || enVoice },
-            { text: `Salamat po.`,                        voice: filVoice || enVoice },
+            [`Attention po.`,                       'en'],
+            [`Token number ${tokenNumber}.`,         'en'],
+            [`Pumunta na po sa ${counterName}.`,     'fil'],
+            [`Salamat po.`,                          'fil'],
         ];
 
-        let i = 0;
-        function speakNext() {
-            if (i >= parts.length) return;
-            const u = new SpeechSynthesisUtterance(parts[i].text);
-            u.rate  = 0.85;
-            u.pitch = 1.0;
-            if (parts[i].voice) u.voice = parts[i].voice;
-            u.onend = () => { i++; speakNext(); };
-            window.speechSynthesis.speak(u);
+        // Build Audio elements via PHP proxy (real Google Filipino voice)
+        const audios = parts.map(([text, lang]) => {
+            const url = `${BASE_URL}/api/tts-proxy.php?lang=${lang}&text=${encodeURIComponent(text)}`;
+            return new Audio(url);
+        });
+
+        // Pre-load all parts then play sequentially
+        let loaded = 0;
+        audios.forEach((a, idx) => {
+            a.addEventListener('canplaythrough', () => {
+                loaded++;
+                if (loaded === audios.length && idx === 0) playPart(0);
+            }, { once: true });
+            a.load();
+        });
+
+        function playPart(i) {
+            if (i >= audios.length) return;
+            audios[i].onended = () => playPart(i + 1);
+            audios[i].play().catch(() => {
+                // Fallback to Web Speech API if proxy fails
+                fallbackSpeak(parts.map(p => p[0]).join(' '));
+            });
         }
-        speakNext();
+    }
+
+    function fallbackSpeak(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.85; u.lang = 'en-US';
+        window.speechSynthesis.speak(u);
     }
     
     // Update date and time
