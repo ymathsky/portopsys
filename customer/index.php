@@ -973,7 +973,7 @@ foreach ($todaySchedulesData as $ts) {
     function printToken() {
         if (!generatedToken) return;
 
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(BASE_URL + '/customer/token-status.php?token=' + generatedToken.token_number)}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(BASE_URL + '/customer/token-status.php?token=' + generatedToken.token_number)}`;
         const issuedStr = new Date(generatedToken.issued_at).toLocaleString('en-PH', {
             year:'numeric', month:'2-digit', day:'2-digit',
             hour:'2-digit', minute:'2-digit'
@@ -989,21 +989,27 @@ foreach ($todaySchedulesData as $ts) {
                     * { margin: 0; padding: 0; box-sizing: border-box; }
 
                     @page {
-                        size: 55mm auto;
-                        margin: 2mm;
+                        size: 58mm auto;
+                        margin: 0;
+                    }
+
+                    html, body {
+                        width: 58mm;
+                        margin: 0;
+                        padding: 0;
                     }
 
                     body {
                         font-family: Arial, 'Helvetica Neue', sans-serif;
-                        width: 51mm;
-                        font-size: 9pt;
+                        font-size: 8pt;
                         color: #000;
                         background: #fff;
                     }
 
                     .ticket {
-                        width: 51mm;
-                        padding: 2mm 1mm;
+                        width: 54mm;
+                        margin: 0 auto;
+                        padding: 2mm 0;
                         text-align: center;
                     }
 
@@ -1011,39 +1017,41 @@ foreach ($todaySchedulesData as $ts) {
                         font-size: 7pt;
                         font-weight: bold;
                         text-transform: uppercase;
-                        letter-spacing: 0.3px;
+                        letter-spacing: 0.2px;
                         line-height: 1.3;
                         border-bottom: 1px dashed #000;
-                        padding-bottom: 2mm;
-                        margin-bottom: 2mm;
+                        padding-bottom: 1.5mm;
+                        margin-bottom: 1.5mm;
                     }
 
                     .token-number {
-                        font-size: 22pt;
+                        font-size: 14pt;
                         font-weight: 900;
                         letter-spacing: -0.5px;
-                        line-height: 1.1;
-                        margin: 2mm 0;
+                        line-height: 1.2;
+                        margin: 1.5mm 0;
+                        word-break: break-all;
+                        overflow-wrap: break-word;
                     }
 
                     .divider {
                         border-top: 1px dashed #000;
-                        margin: 2mm 0;
+                        margin: 1.5mm 0;
                     }
 
                     .info-row {
                         display: flex;
                         justify-content: space-between;
-                        font-size: 7.5pt;
-                        line-height: 1.6;
+                        font-size: 7pt;
+                        line-height: 1.5;
                         text-align: left;
                     }
 
-                    .info-row .label { font-weight: bold; }
-                    .info-row .value { text-align: right; max-width: 28mm; }
+                    .info-row .label { font-weight: bold; white-space: nowrap; margin-right: 1mm; }
+                    .info-row .value { text-align: right; word-break: break-word; }
 
                     .qr-wrap {
-                        margin: 2mm auto;
+                        margin: 1.5mm auto;
                         display: inline-block;
                         border: 1px solid #000;
                         padding: 1mm;
@@ -1053,21 +1061,21 @@ foreach ($todaySchedulesData as $ts) {
                     .qr-wrap img { display: block; }
 
                     .scan-txt {
-                        font-size: 6.5pt;
+                        font-size: 6pt;
                         color: #444;
                         margin-top: 1mm;
                     }
 
                     .footer {
-                        font-size: 6.5pt;
+                        font-size: 6pt;
                         border-top: 1px dashed #000;
-                        padding-top: 2mm;
-                        margin-top: 2mm;
+                        padding-top: 1.5mm;
+                        margin-top: 1.5mm;
                         color: #333;
                     }
 
                     @media print {
-                        body { width: 51mm; }
+                        html, body { width: 58mm; }
                         .ticket { page-break-inside: avoid; }
                     }
                 </style>
@@ -1106,7 +1114,7 @@ foreach ($todaySchedulesData as $ts) {
                     <div class="divider"></div>
 
                     <div class="qr-wrap">
-                        <img src="${qrCodeUrl}" width="100" height="100" alt="QR">
+                        <img src="${qrCodeUrl}" width="80" height="80" alt="QR">
                     </div>
                     <div class="scan-txt">Scan to check status</div>
 
