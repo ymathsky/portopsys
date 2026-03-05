@@ -198,6 +198,8 @@ class TokenManager {
             INNER JOIN service_categories sc ON t.service_category_id = sc.id
             LEFT JOIN service_counters c ON t.counter_id = c.id
             WHERE t.token_number = ?
+            ORDER BY t.issued_at DESC
+            LIMIT 1
         ");
         $stmt->execute([$tokenNumber]);
         return $stmt->fetch();

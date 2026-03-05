@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS counter_services (
 -- Tokens/Queue Table
 CREATE TABLE IF NOT EXISTS tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    token_number VARCHAR(20) NOT NULL UNIQUE,
+    token_number VARCHAR(20) NOT NULL,
     service_category_id INT NOT NULL,
     customer_name VARCHAR(100),
     customer_mobile VARCHAR(20),
@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS tokens (
     fare_paid DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     FOREIGN KEY (service_category_id) REFERENCES service_categories(id),
     FOREIGN KEY (counter_id) REFERENCES service_counters(id) ON DELETE SET NULL,
+    INDEX idx_token_number (token_number),
     INDEX idx_status (status),
     INDEX idx_service_category (service_category_id),
     INDEX idx_issued_at (issued_at),
