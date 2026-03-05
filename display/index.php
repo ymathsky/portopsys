@@ -885,7 +885,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             btn.innerHTML = '<span>🔊 Audio On</span>';
             btn.classList.add('active');
             // Test speak
-            announce("Audio Enabled");
+            announce("Handa na ang audio. Maligayang pagdating!");
         } else {
             btn.innerHTML = '<span>🔈 Enable Audio</span>';
             btn.classList.remove('active');
@@ -898,12 +898,16 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         window.speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
+        utterance.rate = 0.85;
         utterance.pitch = 1.0;
-        // Try to find a good english voice
+        // Prefer Filipino/Tagalog voice, fall back to English
         const voices = window.speechSynthesis.getVoices();
-        const enVoice = voices.find(v => v.lang.includes('en-GB')) || voices.find(v => v.lang.includes('en-US'));
-        if (enVoice) utterance.voice = enVoice;
+        const filVoice = voices.find(v => v.lang.includes('fil')) ||
+                         voices.find(v => v.lang.includes('tl'))  ||
+                         voices.find(v => v.lang.includes('ph'));
+        const enVoice  = voices.find(v => v.lang.includes('en-US')) ||
+                         voices.find(v => v.lang.includes('en-GB'));
+        utterance.voice = filVoice || enVoice || null;
         
         window.speechSynthesis.speak(utterance);
     }
@@ -992,7 +996,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                 const lastKey  = lastAnnouncedToken[counter.id] || '';
                 if (lastKey !== trackKey) {
                     setTimeout(() => {
-                        announce(`Token number ${counter.current_token}, please proceed to ${counter.counter_name || 'Counter ' + counter.counter_number}`);
+                        announce(`Numero ${counter.current_token}. Mangyaring pumunta na po sa ${counter.counter_name || 'Counter ' + counter.counter_number}. Salamat po.`);
                     }, 500);
                     lastAnnouncedToken[counter.id] = trackKey;
                 }
