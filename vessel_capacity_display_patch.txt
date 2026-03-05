@@ -1,0 +1,56 @@
+In customer/index.php, find line 122-130 (both occurrences):
+
+REPLACE:
+                        // Check if within effective dates
+                        if ($schedule['effective_from'] > $todayDate) continue;
+                        if ($schedule['effective_until'] && $schedule['effective_until'] < $todayDate) continue;
+                    ?>
+
+WITH:
+                        // Check if within effective dates
+                        if ($schedule['effective_from'] > $todayDate) continue;
+                        if ($schedule['effective_until'] && $schedule['effective_until'] < $todayDate) continue;
+                        
+                        // Get vessel capacity info
+                        $vessel = $portManager->getVesselById($schedule['vessel_id']);
+                        $currentCount = $portManager->getVesselPassengerCount($schedule['vessel_id']);
+                        $maxCapacity = $vessel['max_capacity'];
+                        $remainingCapacity = $portManager->getRemainingCapacity($schedule['vessel_id']);
+                        $isFull = $maxCapacity > 0 && $currentCount >= $maxCapacity;
+                    ?>
+
+AND REPLACE line 131-138:
+
+FROM:
+                        <button onclick="selectSchedule(...)" 
+                                class="schedule-option w-full bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 border-2 border-cyan-200 hover:border-cyan-400 rounded-xl p-6 text-left transition-all group">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <span class="text-3xl">⛵</span>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800 group-hover:text-cyan-600"><?php echo htmlspecialchars($schedule['schedule_name']); ?></h3>
+                                            <p class="text-sm text-gray-600">Vessel: <?php echo htmlspecialchars($schedule['vessel_name']); ?></p>
+
+TO:
+                        <button onclick="selectSchedule(...)" 
+                                class="schedule-option w-full bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 border-2 border-cyan-200 hover:border-cyan-400 rounded-xl p-6 text-left transition-all group <?php echo $isFull ? 'opacity-60 cursor-not-allowed' : ''; ?>"
+                                <?php echo $isFull ? 'disabled' : ''; ?>>
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <span class="text-3xl">⛵</span>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800 group-hover:text-cyan-600"><?php echo htmlspecialchars($schedule['schedule_name']); ?></h3>
+                                            <p class="text-sm text-gray-600">Vessel: <?php echo htmlspecialchars($schedule['vessel_name']); ?></p>
+                                            <?php if ($maxCapacity > 0): ?>
+                                                <p class="text-xs mt-1 <?php echo $isFull ? 'text-red-600 font-semibold' : 'text-gray-500'; ?>">
+                                                    <?php if ($isFull): ?>
+                                                        🚫 Capacity Full (<?php echo $currentCount; ?>/<?php echo $maxCapacity; ?>)
+                                                    <?php else: ?>
+                                                        👥 <?php echo $remainingCapacity; ?> seats available (<?php echo $currentCount; ?>/<?php echo $maxCapacity; ?>)
+                                                    <?php endif; ?>
+                                                </p>
+                                            <?php endif; ?>
+
+This needs to be applied to BOTH schedule display sections (around lines 115-165 and 176-226).

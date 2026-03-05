@@ -1,0 +1,15 @@
+# Allow video files to be accessed
+<Files "*.mp4">
+    Order Allow,Deny
+    Allow from all
+</Files>
+<Files "*.webm">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Prevent PHP execution in uploads directory
+<FilesMatch "\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
