@@ -741,37 +741,63 @@ document.getElementById('updateStatusBtn')?.addEventListener('click', function()
 });
 
 // QR Scanner Functions
+let _qrCameras  = [];
+let _qrCamIndex = 0;
+let _qrScanner  = null;
+
 function openQRScanner() {
     document.getElementById('qrScannerModal').classList.remove('hidden');
-    startQRScanner();
+    document.getElementById('qr-switch-cam-btn').classList.add('hidden');
+    document.getElementById('qr-reader').innerHTML = '';
+    _qrScanner = new Html5Qrcode('qr-reader');
+
+    Html5Qrcode.getCameras().then(cameras => {
+        if (!cameras || cameras.length === 0) return;
+        _qrCameras  = cameras;
+        const backIdx = cameras.findIndex(c => /back|rear|environment/i.test(c.label));
+        _qrCamIndex = backIdx >= 0 ? backIdx : cameras.length - 1;
+        if (cameras.length > 1) document.getElementById('qr-switch-cam-btn').classList.remove('hidden');
+        startQRCamera();
+    }).catch(() => { startQRCamera(); });
 }
 
-function closeQRScanner() {
-    document.getElementById('qrScannerModal').classList.add('hidden');
-    if (window.html5QrcodeScanner) {
-        window.html5QrcodeScanner.clear();
-    }
-}
-
-function startQRScanner() {
-    const html5Qrcode = new Html5Qrcode("qr-reader");
-    html5Qrcode.start(
-        { facingMode: "environment" },
+function startQRCamera() {
+    const camId = _qrCameras.length > 0 ? _qrCameras[_qrCamIndex].id : { facingMode: 'environment' };
+    _qrScanner.start(
+        camId,
         { fps: 10, qrbox: { width: 220, height: 220 } },
         (decodedText) => {
-            html5Qrcode.stop().catch(() => {});
+            _qrScanner.stop().catch(() => {});
             onScanSuccess(decodedText);
         },
         () => {}
     ).catch((err) => {
-        // Camera permission denied or unavailable — fall back to file scanner
-        const scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 220 }, false);
+        // Fall back to file scanner
+        const scanner = new Html5QrcodeScanner('qr-reader', { fps: 10, qrbox: 220 }, false);
         scanner.render(onScanSuccess, onScanError);
         window.html5QrcodeScanner = { clear: () => scanner.clear() };
-        return;
     });
-    window.html5QrcodeScanner = { clear: () => html5Qrcode.stop().catch(() => {}) };
+    window.html5QrcodeScanner = { clear: () => _qrScanner.stop().catch(() => {}) };
 }
+
+function switchQRCamera() {
+    if (_qrCameras.length < 2) return;
+    const btn = document.getElementById('qr-switch-cam-btn');
+    btn.disabled = true;
+    _qrScanner.stop().then(() => {
+        _qrCamIndex = (_qrCamIndex + 1) % _qrCameras.length;
+        startQRCamera();
+        btn.disabled = false;
+    }).catch(() => { btn.disabled = false; });
+}
+
+function closeQRScanner() {
+    document.getElementById('qrScannerModal').classList.add('hidden');
+    if (_qrScanner) _qrScanner.stop().catch(() => {});
+    if (window.html5QrcodeScanner) window.html5QrcodeScanner.clear();
+}
+
+function startQRScanner() { openQRScanner(); } // legacy alias
 
 function onScanSuccess(decodedText, decodedResult) {
     // Extract token number from URL or use directly
@@ -990,6 +1016,11 @@ window.addEventListener('beforeunload', () => {
         </div>
         <div class="p-6">
             <div id="qr-reader" class="w-full"></div>
+            <div class="flex justify-center mt-3">
+                <button id="qr-switch-cam-btn" onclick="switchQRCamera()" class="hidden items-center gap-2 px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold transition-colors">
+                    🔄 Switch Camera
+                </button>
+            </div>
             <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <p class="text-blue-800 text-sm"><strong>📱 Instructions:</strong> Position the QR code within the camera frame. The system will automatically scan and call the token.</p>
             </div>

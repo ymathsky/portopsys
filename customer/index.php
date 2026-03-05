@@ -1266,43 +1266,71 @@ foreach ($todaySchedulesData as $ts) {
         document.getElementById('redeemQRModal').classList.remove('hidden');
         document.getElementById('redeem-qr-reader').innerHTML = '';
         document.getElementById('redeem-qr-status').textContent = 'Starting camera…';
+        document.getElementById('redeem-switch-cam-btn').classList.add('hidden');
 
         const html5Qrcode = new Html5Qrcode('redeem-qr-reader');
         window._redeemQrScanner = html5Qrcode;
+        window._redeemCameras   = [];
+        window._redeemCamIndex  = 0;
 
         Html5Qrcode.getCameras().then(cameras => {
             if (!cameras || cameras.length === 0) {
                 document.getElementById('redeem-qr-status').textContent = '⚠️ No camera found on this device.';
                 return;
             }
+            window._redeemCameras = cameras;
             // Prefer back/environment camera on mobile
-            const cam = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
-            document.getElementById('redeem-qr-status').textContent = '📷 Camera active — point at QR code';
+            const backIdx = cameras.findIndex(c => /back|rear|environment/i.test(c.label));
+            window._redeemCamIndex = backIdx >= 0 ? backIdx : cameras.length - 1;
 
-            html5Qrcode.start(
-                cam.id,
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    let code = decodedText.trim().toUpperCase();
-                    if (code.includes('CODE=')) {
-                        const m = code.match(/CODE=([A-Z0-9-]+)/);
-                        if (m) code = m[1];
-                    } else if (code.includes('?')) {
-                        const parts = decodedText.split(/[/?=]/);
-                        const candidate = parts.find(p => /^RES-/.test(p.toUpperCase()));
-                        if (candidate) code = candidate.toUpperCase();
-                    }
-                    closeRedeemQRScanner();
-                    document.getElementById('redeemCodeInput').value = code;
-                    lookupReservation();
-                },
-                () => { /* ignore per-frame errors */ }
-            ).catch(err => {
-                document.getElementById('redeem-qr-status').textContent = '⚠️ Camera error: ' + err;
-            });
+            if (cameras.length > 1) {
+                document.getElementById('redeem-switch-cam-btn').classList.remove('hidden');
+            }
+
+            startRedeemCamera();
         }).catch(err => {
             document.getElementById('redeem-qr-status').textContent = '⚠️ Camera access denied. Please allow camera permissions and try again.';
         });
+    }
+
+    function startRedeemCamera() {
+        const cameras = window._redeemCameras;
+        const idx     = window._redeemCamIndex;
+        const scanner = window._redeemQrScanner;
+        document.getElementById('redeem-qr-status').textContent = '📷 Camera active — point at QR code';
+        scanner.start(
+            cameras[idx].id,
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                let code = decodedText.trim().toUpperCase();
+                if (code.includes('CODE=')) {
+                    const m = code.match(/CODE=([A-Z0-9-]+)/);
+                    if (m) code = m[1];
+                } else if (code.includes('?')) {
+                    const parts = decodedText.split(/[/?=]/);
+                    const candidate = parts.find(p => /^RES-/.test(p.toUpperCase()));
+                    if (candidate) code = candidate.toUpperCase();
+                }
+                closeRedeemQRScanner();
+                document.getElementById('redeemCodeInput').value = code;
+                lookupReservation();
+            },
+            () => { /* ignore per-frame errors */ }
+        ).catch(err => {
+            document.getElementById('redeem-qr-status').textContent = '⚠️ Camera error: ' + err;
+        });
+    }
+
+    function switchRedeemCamera() {
+        const cameras = window._redeemCameras;
+        if (!cameras || cameras.length < 2) return;
+        const btn = document.getElementById('redeem-switch-cam-btn');
+        btn.disabled = true;
+        window._redeemQrScanner.stop().then(() => {
+            window._redeemCamIndex = (window._redeemCamIndex + 1) % cameras.length;
+            startRedeemCamera();
+            btn.disabled = false;
+        }).catch(() => { btn.disabled = false; });
     }
 
     function closeRedeemQRScanner() {
@@ -1333,7 +1361,12 @@ foreach ($todaySchedulesData as $ts) {
         <div class="p-6">
             <p id="redeem-qr-status" class="text-center text-sm text-gray-500 mb-3">Starting camera…</p>
             <div id="redeem-qr-reader" class="w-full rounded-xl overflow-hidden"></div>
-            <div class="mt-4 bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+            <div class="flex justify-center mt-3">
+                <button id="redeem-switch-cam-btn" onclick="switchRedeemCamera()" class="hidden items-center gap-2 px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-sm font-semibold transition-colors">
+                    🔄 Switch Camera
+                </button>
+            </div>
+            <div class="mt-3 bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                 <p class="text-indigo-800 text-sm"><strong>📱 Tip:</strong> Point your camera at the QR code from your reservation confirmation. It will be detected automatically.</p>
             </div>
         </div>
