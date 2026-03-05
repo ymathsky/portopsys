@@ -972,9 +972,13 @@ foreach ($todaySchedulesData as $ts) {
     
     function printToken() {
         if (!generatedToken) return;
-        
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(BASE_URL + '/customer/token-status.php?token=' + generatedToken.token_number)}`;
-        
+
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(BASE_URL + '/customer/token-status.php?token=' + generatedToken.token_number)}`;
+        const issuedStr = new Date(generatedToken.issued_at).toLocaleString('en-PH', {
+            year:'numeric', month:'2-digit', day:'2-digit',
+            hour:'2-digit', minute:'2-digit'
+        });
+
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
             <!DOCTYPE html>
@@ -982,58 +986,134 @@ foreach ($todaySchedulesData as $ts) {
             <head>
                 <title>Token - ${generatedToken.token_number}</title>
                 <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+                    @page {
+                        size: 55mm auto;
+                        margin: 2mm;
+                    }
+
                     body {
-                        font-family: Arial, sans-serif;
-                        padding: 20px;
+                        font-family: Arial, 'Helvetica Neue', sans-serif;
+                        width: 51mm;
+                        font-size: 9pt;
+                        color: #000;
+                        background: #fff;
+                    }
+
+                    .ticket {
+                        width: 51mm;
+                        padding: 2mm 1mm;
                         text-align: center;
                     }
-                    .token-print {
-                        border: 2px dashed #333;
-                        padding: 30px;
-                        max-width: 400px;
-                        margin: 0 auto;
-                    }
-                    .token-number {
-                        font-size: 48px;
+
+                    .header {
+                        font-size: 7pt;
                         font-weight: bold;
-                        margin: 20px 0;
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                        line-height: 1.3;
+                        border-bottom: 1px dashed #000;
+                        padding-bottom: 2mm;
+                        margin-bottom: 2mm;
                     }
-                    .info {
-                        margin: 10px 0;
-                        font-size: 14px;
+
+                    .token-number {
+                        font-size: 22pt;
+                        font-weight: 900;
+                        letter-spacing: -0.5px;
+                        line-height: 1.1;
+                        margin: 2mm 0;
                     }
-                    .qr-code {
-                        margin: 20px 0;
+
+                    .divider {
+                        border-top: 1px dashed #000;
+                        margin: 2mm 0;
                     }
-                    .qr-code img {
-                        border: 3px solid #333;
-                        padding: 10px;
-                        background: white;
+
+                    .info-row {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 7.5pt;
+                        line-height: 1.6;
+                        text-align: left;
                     }
+
+                    .info-row .label { font-weight: bold; }
+                    .info-row .value { text-align: right; max-width: 28mm; }
+
+                    .qr-wrap {
+                        margin: 2mm auto;
+                        display: inline-block;
+                        border: 1px solid #000;
+                        padding: 1mm;
+                        background: #fff;
+                    }
+
+                    .qr-wrap img { display: block; }
+
+                    .scan-txt {
+                        font-size: 6.5pt;
+                        color: #444;
+                        margin-top: 1mm;
+                    }
+
+                    .footer {
+                        font-size: 6.5pt;
+                        border-top: 1px dashed #000;
+                        padding-top: 2mm;
+                        margin-top: 2mm;
+                        color: #333;
+                    }
+
                     @media print {
-                        body { padding: 0; }
+                        body { width: 51mm; }
+                        .ticket { page-break-inside: avoid; }
                     }
                 </style>
             </head>
             <body>
-                <div class="token-print">
-                    <h1>Port Queuing Management System</h1>
-                    <div class="token-number">${generatedToken.token_number}</div>
-                    <div class="info"><strong>Service:</strong> ${generatedToken.service_name}</div>
-                    <div class="info"><strong>Priority:</strong> ${generatedToken.priority_type.replace('_', ' ').toUpperCase()}</div>
-                    <div class="info"><strong>Queue Position:</strong> #${generatedToken.queue_position}</div>
-                    <div class="info"><strong>Est. Wait:</strong> ${generatedToken.estimated_wait_time} minutes</div>
-                    <div class="info"><strong>Issued:</strong> ${new Date(generatedToken.issued_at).toLocaleString('en-US', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'})}</div>
-                    <div class="qr-code">
-                        <img src="${qrCodeUrl}" alt="QR Code" width="150" height="150">
-                        <p style="font-size: 11px; margin-top: 5px;">Scan to check status</p>
+                <div class="ticket">
+                    <div class="header">
+                        Port Queuing<br>Management System
                     </div>
-                    <p style="margin-top: 20px; font-size: 12px;">Please keep this token for reference</p>
+
+                    <div class="token-number">${generatedToken.token_number}</div>
+
+                    <div class="divider"></div>
+
+                    <div class="info-row">
+                        <span class="label">Service:</span>
+                        <span class="value">${generatedToken.service_name}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Priority:</span>
+                        <span class="value">${generatedToken.priority_type.replace('_',' ').toUpperCase()}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Queue #:</span>
+                        <span class="value">#${generatedToken.queue_position}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Est. Wait:</span>
+                        <span class="value">${generatedToken.estimated_wait_time} min</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Issued:</span>
+                        <span class="value">${issuedStr}</span>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="qr-wrap">
+                        <img src="${qrCodeUrl}" width="100" height="100" alt="QR">
+                    </div>
+                    <div class="scan-txt">Scan to check status</div>
+
+                    <div class="footer">Please keep this token for reference</div>
                 </div>
                 <script>
-                    window.onload = function() {
-                        window.print();
-                    }
+                    window.onload = function() { window.print(); }
                 <\/script>
             </body>
             </html>
