@@ -772,8 +772,6 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         }
         
     </style>
-    <!-- ResponsiveVoice: natural Filipino Female TTS -->
-    <script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 </head>
 <body>
     <!-- Maintenance Overlay -->
@@ -887,70 +885,81 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             btn.innerHTML = '<span>🔊 Audio On</span>';
             btn.classList.add('active');
             // Test speak
-            rvSpeak('Handa na ang audio. Maligayang pagdating!');
+            speakTaglishParts(['Handa na ang audio!']);
         } else {
             btn.innerHTML = '<span>🔈 Enable Audio</span>';
             btn.classList.remove('active');
         }
     }
 
+    // ── Voice selection ──────────────────────────────────────────────────
+    let _voices = [];
+    function getVoices() {
+        if (_voices.length) return _voices;
+        _voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+        return _voices;
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            _voices = window.speechSynthesis.getVoices();
+        };
+    }
+
+    function pickFemaleVoice(preferLang) {
+        const voices = getVoices();
+        // Priority list for Filipino female voices
+        const candidates = [
+            v => /blessica/i.test(v.name),                          // Windows 11 Filipino Female
+            v => /google filipino/i.test(v.name),                   // Android / Chrome
+            v => /filipin/i.test(v.name) && /female/i.test(v.name),
+            v => v.lang.startsWith('fil') || v.lang.startsWith('tl'),
+            v => /zira/i.test(v.name),                              // Windows EN Female fallback
+            v => /google us english/i.test(v.name),
+            v => /female/i.test(v.name),
+            v => v.lang.startsWith('en'),
+        ];
+        for (const fn of candidates) {
+            const match = voices.find(fn);
+            if (match) return match;
+        }
+        return null;
+    }
+
     function announce(text) {
         if (!audioEnabled || !window.speechSynthesis) return;
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.85;
-        utterance.pitch = 1.0;
-        const voices = window.speechSynthesis.getVoices();
-        const filVoice = voices.find(v => v.lang.includes('fil')) ||
-                         voices.find(v => v.lang.includes('tl'))  ||
-                         voices.find(v => v.lang.includes('ph'));
-        const enVoice  = voices.find(v => v.lang.includes('en-US')) ||
-                         voices.find(v => v.lang.includes('en-GB'));
-        utterance.voice = filVoice || enVoice || null;
-        window.speechSynthesis.speak(utterance);
-    }
-
-    function rvSpeak(text, lang) {
-        // Use ResponsiveVoice Filipino Female; fallback to Web Speech
-        if (typeof responsiveVoice !== 'undefined' && responsiveVoice.voiceSupport()) {
-            const voice = (lang === 'en') ? 'UK English Female' : 'Filipino Female';
-            responsiveVoice.speak(text, voice, { rate: 0.9, pitch: 1.1, volume: 1 });
-        } else {
-            fallbackSpeak(text);
-        }
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.88; u.pitch = 1.1;
+        u.voice = pickFemaleVoice();
+        window.speechSynthesis.speak(u);
     }
 
     function announceTaglish(tokenNumber, counterName) {
         if (!audioEnabled) return;
-        if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
-            fallbackSpeak(`Token number ${tokenNumber}. Pumunta na po sa ${counterName}. Salamat po.`);
-            return;
-        }
-
-        // Queue parts sequentially using onend callback
-        const parts = [
-            { text: `Attention po.`,                    lang: 'fil' },
-            { text: `Token number ${tokenNumber}.`,     lang: 'en'  },
-            { text: `Pumunta na po sa ${counterName}.`, lang: 'fil' },
-            { text: `Salamat po.`,                      lang: 'fil' },
+        const texts = [
+            `Attention po.`,
+            `Token number ${tokenNumber}.`,
+            `Pumunta na po sa ${counterName}.`,
+            `Salamat po.`,
         ];
-
-        let i = 0;
-        function next() {
-            if (i >= parts.length) return;
-            const { text, lang } = parts[i++];
-            const voice = (lang === 'en') ? 'UK English Female' : 'Filipino Female';
-            responsiveVoice.speak(text, voice, { rate: 0.9, pitch: 1.1, volume: 1, onend: next });
-        }
-        next();
+        speakTaglishParts(texts);
     }
 
-    function fallbackSpeak(text) {
-        if (!window.speechSynthesis) return;
+    function speakTaglishParts(texts) {
+        if (!audioEnabled || !window.speechSynthesis) return;
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.85; u.lang = 'fil-PH';
-        window.speechSynthesis.speak(u);
+        const voice = pickFemaleVoice();
+        let i = 0;
+        function next() {
+            if (i >= texts.length) return;
+            const u = new SpeechSynthesisUtterance(texts[i++]);
+            u.rate  = 0.88;
+            u.pitch = 1.15;
+            if (voice) u.voice = voice;
+            u.onend = next;
+            window.speechSynthesis.speak(u);
+        }
+        next();
     }
     
     // Update date and time
