@@ -754,18 +754,23 @@ function closeQRScanner() {
 }
 
 function startQRScanner() {
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { 
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
+    const html5Qrcode = new Html5Qrcode("qr-reader");
+    html5Qrcode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (decodedText) => {
+            html5Qrcode.stop().catch(() => {});
+            onScanSuccess(decodedText);
         },
-        false
-    );
-    
-    html5QrcodeScanner.render(onScanSuccess, onScanError);
-    window.html5QrcodeScanner = html5QrcodeScanner;
+        () => {}
+    ).catch((err) => {
+        // Camera permission denied or unavailable — fall back to file scanner
+        const scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 220 }, false);
+        scanner.render(onScanSuccess, onScanError);
+        window.html5QrcodeScanner = { clear: () => scanner.clear() };
+        return;
+    });
+    window.html5QrcodeScanner = { clear: () => html5Qrcode.stop().catch(() => {}) };
 }
 
 function onScanSuccess(decodedText, decodedResult) {

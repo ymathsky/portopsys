@@ -979,11 +979,15 @@ foreach ($todaySchedulesData as $ts) {
             hour:'2-digit', minute:'2-digit'
         });
 
-        const printWindow = window.open('', '_blank');
+        // 58mm ≈ 220px at 96dpi — opening at this width forces the browser to lay
+        // out content at thermal-paper width so nothing overflows on the right.
+        const printWindow = window.open('', '_blank', 'width=220,height=800,menubar=no,toolbar=no');
         printWindow.document.write(`
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=220, initial-scale=1">
                 <title>Token - ${generatedToken.token_number}</title>
                 <style>
                     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -994,22 +998,19 @@ foreach ($todaySchedulesData as $ts) {
                     }
 
                     html, body {
-                        width: 58mm;
+                        width: 100%;
+                        max-width: 220px;
                         margin: 0;
                         padding: 0;
-                    }
-
-                    body {
-                        font-family: Arial, 'Helvetica Neue', sans-serif;
-                        font-size: 8pt;
+                        font-family: Arial, sans-serif;
+                        font-size: 7.5pt;
                         color: #000;
                         background: #fff;
                     }
 
                     .ticket {
-                        width: 54mm;
-                        margin: 0 auto;
-                        padding: 2mm 0;
+                        width: 100%;
+                        padding: 2mm 1mm;
                         text-align: center;
                     }
 
@@ -1018,20 +1019,18 @@ foreach ($todaySchedulesData as $ts) {
                         font-weight: bold;
                         text-transform: uppercase;
                         letter-spacing: 0.2px;
-                        line-height: 1.3;
+                        line-height: 1.4;
                         border-bottom: 1px dashed #000;
                         padding-bottom: 1.5mm;
                         margin-bottom: 1.5mm;
                     }
 
                     .token-number {
-                        font-size: 14pt;
+                        font-size: 13pt;
                         font-weight: 900;
-                        letter-spacing: -0.5px;
                         line-height: 1.2;
                         margin: 1.5mm 0;
-                        word-break: break-all;
-                        overflow-wrap: break-word;
+                        letter-spacing: -0.3px;
                     }
 
                     .divider {
@@ -1045,10 +1044,11 @@ foreach ($todaySchedulesData as $ts) {
                         font-size: 7pt;
                         line-height: 1.5;
                         text-align: left;
+                        gap: 2px;
                     }
 
-                    .info-row .label { font-weight: bold; white-space: nowrap; margin-right: 1mm; }
-                    .info-row .value { text-align: right; word-break: break-word; }
+                    .info-row .label { font-weight: bold; white-space: nowrap; }
+                    .info-row .value { text-align: right; }
 
                     .qr-wrap {
                         margin: 1.5mm auto;
@@ -1072,11 +1072,6 @@ foreach ($todaySchedulesData as $ts) {
                         padding-top: 1.5mm;
                         margin-top: 1.5mm;
                         color: #333;
-                    }
-
-                    @media print {
-                        html, body { width: 58mm; }
-                        .ticket { page-break-inside: avoid; }
                     }
                 </style>
             </head>
