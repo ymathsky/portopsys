@@ -78,6 +78,13 @@ CREATE TABLE IF NOT EXISTS tokens (
     INDEX idx_reservation_code (reservation_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Token Reset Log (used to restart per-service numbering after EOD reset)
+CREATE TABLE IF NOT EXISTS token_resets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    reset_at DATETIME NOT NULL,
+    INDEX idx_reset_at (reset_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Vessels Table
 CREATE TABLE IF NOT EXISTS vessels (
     id INT PRIMARY KEY AUTO_INCREMENT,

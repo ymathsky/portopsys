@@ -76,6 +76,13 @@ try {
 
     $db->commit();
 
+    // Record the reset timestamp so token numbering restarts from 0001
+    try {
+        $db->exec("INSERT INTO token_resets (reset_at) VALUES (NOW())");
+    } catch (Exception $e) {
+        // Non-fatal: table may not exist on older installs
+    }
+
     AuditLogger::log(
         'system_reset', 'system',
         "End-of-day reset: {$cancelledCount} cancelled, {$completedCount} completed, {$countersReset} counters reset, {$statusesReset} trip statuses reset"
