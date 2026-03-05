@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home3/portopsy/public_html/qs
-    - /bin/cp -R . $DEPLOYPATH
+    - /bin/mkdir -p /home3/portopsy/public_html/qs
+    - /usr/bin/rsync -av --exclude='.git' --exclude='.cpanel.yml' . /home3/portopsy/public_html/qs/
