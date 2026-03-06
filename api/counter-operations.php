@@ -23,6 +23,7 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     $action = $input['action'] ?? '';
     
+    $db = getDB();
     $tokenManager = new TokenManager();
     $serviceManager = new ServiceManager();
     
@@ -137,6 +138,73 @@ try {
                 "Transferred token ID {$input['token_id']} to counter ID {$input['new_counter_id']}",
                 (int)$input['token_id']);
             jsonResponse(true, 'Token transferred successfully', $transferredToken);
+            break;
+
+        case 'mass_call':
+            // Call up to N (max 10) next-priority tokens at this counter
+            if (!isset($input['counter_id'])) {
+                jsonResponse(false, 'Counter ID is required', null, 400);
+            }
+
+            $counterId   = intval($input['counter_id']);
+            $batchSize   = max(1, min(10, intval($input['count'] ?? 5)));
+
+            // Get service IDs for this counter
+            $stmt = $db->prepare("SELECT service_category_id FROM counter_services WHERE counter_id = ?");
+            $stmt->execute([$counterId]);
+            $serviceIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($serviceIds)) {
+                jsonResponse(false, 'No services assigned to this counter', null, 400);
+            }
+
+            $placeholders = implode(',', array_fill(0, count($serviceIds), '?'));
+            $stmt = $db->prepare("
+                SELECT t.id
+                FROM tokens t
+                INNER JOIN service_categories sc ON t.service_category_id = sc.id
+                WHERE t.status = 'waiting'
+                AND t.service_category_id IN ($placeholders)
+                ORDER BY
+                    CASE t.priority_type
+                        WHEN 'emergency' THEN 1
+                        WHEN 'urgent'    THEN 1
+                        WHEN 'senior'    THEN 2
+                        WHEN 'pwd'       THEN 2
+                        WHEN 'pregnant'  THEN 2
+                        WHEN 'student'   THEN 3
+                        ELSE 4
+                    END,
+                    sc.priority_level DESC,
+                    t.issued_at ASC
+                LIMIT ?
+            ");
+            $stmt->execute(array_merge($serviceIds, [$batchSize]));
+            $tokenIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($tokenIds)) {
+                jsonResponse(true, 'No tokens in queue', []);
+            }
+
+            $called = [];
+            $db->beginTransaction();
+            try {
+                foreach ($tokenIds as $tid) {
+                    $db->prepare("UPDATE tokens SET status='called', counter_id=?, called_at=NOW() WHERE id=?")
+                       ->execute([$counterId, $tid]);
+                    AuditLogger::log('call_token', 'counter', "Mass-called token ID {$tid} at counter ID {$counterId}", (int)$tid);
+                    $called[] = $tokenManager->getToken($tid);
+                }
+                // Mark counter as serving
+                $db->prepare("UPDATE service_counters SET current_status='serving', updated_at=NOW() WHERE id=?")
+                   ->execute([$counterId]);
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+                throw $e;
+            }
+
+            jsonResponse(true, count($called) . ' token(s) called', $called);
             break;
 
         case 'update_counter_status':

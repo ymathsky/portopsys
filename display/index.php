@@ -283,10 +283,65 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                 font-size: 12px;
             }
 
-            #audioToggle {
-                padding: 8px 16px;
-                font-size: 12px;
-            }
+        }
+
+        /* ── Flash overlay ─────────────────────────────── */
+        #flashOverlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.78);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            animation: flashFadeIn 0.25s ease;
+        }
+        #flashOverlay.show {
+            display: flex;
+        }
+        @keyframes flashFadeIn {
+            from { opacity: 0; transform: scale(0.92); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes flashPulse {
+            0%,100% { transform: scale(1); }
+            50%      { transform: scale(1.06); }
+        }
+        .flash-label {
+            font-size: clamp(18px, 3vw, 28px);
+            font-weight: 700;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        .flash-token {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(80px, 18vw, 220px);
+            font-weight: 900;
+            background: linear-gradient(135deg, #38ef7d 0%, #11998e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            animation: flashPulse 0.8s ease-in-out infinite;
+            letter-spacing: 4px;
+        }
+        .flash-counter {
+            font-size: clamp(22px, 4vw, 48px);
+            font-weight: 800;
+            color: #fff;
+            margin-top: 18px;
+            letter-spacing: 2px;
+        }
+        .flash-bar {
+            width: 0%;
+            height: 6px;
+            background: linear-gradient(90deg, #38ef7d, #11998e);
+            border-radius: 3px;
+            margin-top: 30px;
+            transition: width linear;
         }
 
         @media (max-width: 480px) {
@@ -807,13 +862,18 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             <span class="connection-status" id="connStatus" title="System Online"></span>
         </h1>
         <div class="header-controls">
-            <button id="audioToggle" class="icon-btn" onclick="toggleAudio()">
-                <span>🔈 Enable Audio</span>
-            </button>
             <div class="datetime" id="datetime"></div>
         </div>
     </div>
     
+    <!-- Token Flash Overlay -->
+    <div id="flashOverlay">
+        <div class="flash-label">NOW SERVING</div>
+        <div class="flash-token" id="flashToken"></div>
+        <div class="flash-counter" id="flashCounter"></div>
+        <div class="flash-bar" id="flashBar"></div>
+    </div>
+
     <div class="display-main">
         <div class="counter-grid" id="counterGrid">
             <!-- Counters will be dynamically loaded here -->
@@ -874,93 +934,44 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     const BASE_URL = '<?php echo BASE_URL; ?>';
     let countdown = 5;
     let countdownInterval;
-    let audioEnabled = false;
-    let lastAnnouncedToken = {}; // Store last announced token per counter
-    
-    // Toggle Audio
-    function toggleAudio() {
-        audioEnabled = !audioEnabled;
-        const btn = document.getElementById('audioToggle');
-        if(audioEnabled) {
-            btn.innerHTML = '<span>🔊 Audio On</span>';
-            btn.classList.add('active');
-            // Test speak
-            speakTaglishParts(['Handa na ang audio!']);
-        } else {
-            btn.innerHTML = '<span>🔈 Enable Audio</span>';
-            btn.classList.remove('active');
-        }
+    let lastAnnouncedToken = {}; // Store last flashed token per counter
+    let _flashTimer = null;
+    let _flashBarTimer = null;
+
+    // ── Flash overlay ─────────────────────────────────────────────────────
+    function showFlash(tokenNumber, counterName) {
+        const overlay = document.getElementById('flashOverlay');
+        document.getElementById('flashToken').textContent   = tokenNumber;
+        document.getElementById('flashCounter').textContent = counterName;
+        const bar = document.getElementById('flashBar');
+
+        // Clear any previous timer
+        if (_flashTimer)    clearTimeout(_flashTimer);
+        if (_flashBarTimer) clearTimeout(_flashBarTimer);
+
+        overlay.classList.add('show');
+
+        // Animate progress bar from 0→100% over 4 s, then hide
+        bar.style.transition = 'none';
+        bar.style.width = '0%';
+        // Force reflow
+        bar.getBoundingClientRect();
+        bar.style.transition = 'width 4s linear';
+        bar.style.width = '100%';
+
+        _flashTimer = setTimeout(() => {
+            overlay.classList.remove('show');
+            bar.style.width = '0%';
+        }, 4000);
     }
 
-    // ── Voice selection ──────────────────────────────────────────────────
-    let _voices = [];
-    function getVoices() {
-        if (_voices.length) return _voices;
-        _voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-        return _voices;
-    }
-    if (window.speechSynthesis) {
-        window.speechSynthesis.onvoiceschanged = () => {
-            _voices = window.speechSynthesis.getVoices();
-        };
-    }
-
-    function pickFemaleVoice(preferLang) {
-        const voices = getVoices();
-        // Priority list for Filipino female voices
-        const candidates = [
-            v => /blessica/i.test(v.name),                          // Windows 11 Filipino Female
-            v => /google filipino/i.test(v.name),                   // Android / Chrome
-            v => /filipin/i.test(v.name) && /female/i.test(v.name),
-            v => v.lang.startsWith('fil') || v.lang.startsWith('tl'),
-            v => /zira/i.test(v.name),                              // Windows EN Female fallback
-            v => /google us english/i.test(v.name),
-            v => /female/i.test(v.name),
-            v => v.lang.startsWith('en'),
-        ];
-        for (const fn of candidates) {
-            const match = voices.find(fn);
-            if (match) return match;
-        }
-        return null;
-    }
-
-    function announce(text) {
-        if (!audioEnabled || !window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = 0.88; u.pitch = 1.1;
-        u.voice = pickFemaleVoice();
-        window.speechSynthesis.speak(u);
-    }
-
-    function announceTaglish(tokenNumber, counterName) {
-        if (!audioEnabled) return;
-        const texts = [
-            `Attention po.`,
-            `Token number ${tokenNumber}.`,
-            `Pumunta na po sa ${counterName}.`,
-            `Salamat po.`,
-        ];
-        speakTaglishParts(texts);
-    }
-
-    function speakTaglishParts(texts) {
-        if (!audioEnabled || !window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const voice = pickFemaleVoice();
-        let i = 0;
-        function next() {
-            if (i >= texts.length) return;
-            const u = new SpeechSynthesisUtterance(texts[i++]);
-            u.rate  = 0.88;
-            u.pitch = 1.15;
-            if (voice) u.voice = voice;
-            u.onend = next;
-            window.speechSynthesis.speak(u);
-        }
-        next();
-    }
+    // Hide flash on click (manual dismiss)
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('flashOverlay').addEventListener('click', () => {
+            document.getElementById('flashOverlay').classList.remove('show');
+            if (_flashTimer) clearTimeout(_flashTimer);
+        });
+    });
     
     // Update date and time
     function updateDateTime() {
@@ -1040,19 +1051,16 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
 
             // Audio announcement — fires for new token AND for recalls (serving_at changes on recall)
             if (counter.current_token) {
-                // Track token number + serving_at timestamp so a recall (which clears serving_at
-                // and resets called_at) produces a different key and triggers re-announcement.
+                // Track token number + serving_at timestamp so a recall produces a different key
                 const trackKey = (counter.current_token || '') + '|' + (counter.serving_at || '');
                 const lastKey  = lastAnnouncedToken[counter.id] || '';
                 if (lastKey !== trackKey) {
-                    setTimeout(() => {
-                        const cname = counter.counter_name || 'Counter ' + counter.counter_number;
-                        announceTaglish(counter.current_token, cname);
-                    }, 500);
+                    const cname = counter.counter_name || 'Counter ' + counter.counter_number;
+                    setTimeout(() => showFlash(counter.current_token, '➜ ' + cname), 300);
                     lastAnnouncedToken[counter.id] = trackKey;
                 }
             } else {
-                // No active token — reset so next call always announces
+                // No active token — reset so next call always flashes
                 lastAnnouncedToken[counter.id] = null;
             }
 

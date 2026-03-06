@@ -321,6 +321,10 @@ include __DIR__ . '/includes/header.php';
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
                                 </svg>
                             </button>
+                            <button onclick="openMassCallModal()" class="group px-10 py-5 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 text-white rounded-2xl hover:from-orange-600 hover:via-amber-600 hover:to-yellow-600 transition-all duration-300 font-extrabold shadow-2xl hover:shadow-orange-500/50 transform hover:scale-110 text-xl flex items-center gap-4">
+                                <span class="text-3xl">📣</span>
+                                <span>Mass Call</span>
+                            </button>
                             <button onclick="openQRScanner()" class="group px-12 py-5 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white rounded-2xl hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 font-extrabold shadow-2xl hover:shadow-green-500/50 transform hover:scale-110 text-xl flex items-center gap-4">
                                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
@@ -706,6 +710,50 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// ── Mass Call ──────────────────────────────────────────────────────────────
+function openMassCallModal() {
+    document.getElementById('massCallResult').classList.add('hidden');
+    document.getElementById('massCallResult').innerHTML = '';
+    document.getElementById('massCallCount').value = 5;
+    document.getElementById('massCallModal').classList.remove('hidden');
+}
+function closeMassCallModal() {
+    document.getElementById('massCallModal').classList.add('hidden');
+}
+function executeMassCall() {
+    const count = Math.max(1, Math.min(10, parseInt(document.getElementById('massCallCount').value) || 5));
+    const btn = document.getElementById('massCallBtn');
+    btn.disabled = true;
+    btn.textContent = 'Calling...';
+
+    fetch(`${BASE_URL}/api/counter-operations.php`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'mass_call', counter_id: counterId, count: count })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const box = document.getElementById('massCallResult');
+        box.classList.remove('hidden');
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            box.innerHTML = '<strong>' + data.data.length + ' token(s) called:</strong><br>' +
+                data.data.map(t => '• ' + (t.token_number || '?') + ' — ' + (t.customer_name || 'Unknown')).join('<br>');
+            showNotification('📣 ' + data.data.length + ' token(s) mass-called!', 'success');
+            setTimeout(() => { closeMassCallModal(); location.reload(); }, 2000);
+        } else {
+            box.innerHTML = data.message || 'No tokens available.';
+            showNotification('ℹ️ ' + (data.message || 'No tokens'), 'info');
+        }
+    })
+    .catch(err => {
+        showNotification('❌ Network error: ' + err, 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = '📣 Call Now';
+    });
+}
+
 document.getElementById('updateStatusBtn')?.addEventListener('click', function() {
     const status = document.getElementById('counterStatusSelect').value;
     const button = this;
@@ -1030,5 +1078,36 @@ window.addEventListener('beforeunload', () => {
 
 <!-- Add Html5-QRCode Library -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<!-- Mass Call Modal -->
+<div id="massCallModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4 flex justify-between items-center">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                <span class="text-2xl">📣</span> Mass Call Tokens
+            </h3>
+            <button onclick="closeMassCallModal()" class="text-white hover:text-orange-200 text-2xl font-bold leading-none">&times;</button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-gray-600 text-sm">Select how many tokens to call at once (max 10). The highest-priority waiting tokens will be called.</p>
+            <div class="flex items-center gap-3">
+                <label class="font-semibold text-gray-700 whitespace-nowrap">Number to call:</label>
+                <input id="massCallCount" type="number" min="1" max="10" value="5"
+                    class="w-24 border border-gray-300 rounded-xl px-3 py-2 text-center text-lg font-bold focus:ring-2 focus:ring-orange-400 focus:border-transparent">
+            </div>
+            <div id="massCallResult" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-800 max-h-40 overflow-y-auto"></div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="executeMassCall()" id="massCallBtn"
+                    class="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-extrabold hover:from-orange-600 hover:to-amber-600 shadow-lg hover:shadow-orange-300/50 transition-all">
+                    📣 Call Now
+                </button>
+                <button onclick="closeMassCallModal()"
+                    class="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>

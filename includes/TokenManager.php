@@ -43,8 +43,9 @@ class TokenManager {
                     INSERT INTO tokens (
                         token_number, service_category_id, vessel_id, customer_name, customer_mobile,
                         customer_email, priority_type, queue_position, estimated_wait_time,
-                        schedule_id, booking_type, fare_paid, passenger_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        schedule_id, booking_type, fare_paid, passenger_count, passengers_json,
+                        customer_age, customer_sex, customer_place, qr_expires_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE))
                 ");
 
                 $stmt->execute([
@@ -61,6 +62,10 @@ class TokenManager {
                     $bookingData['booking_type']    ?? 'walkin',
                     $bookingData['fare_paid']       ?? 0,
                     $bookingData['passenger_count'] ?? 1,
+                    isset($bookingData['passengers_json']) ? json_encode($bookingData['passengers_json']) : null,
+                    $customerData['age']     ?? null,
+                    $customerData['sex']     ?? null,
+                    $customerData['place']   ?? null,
                 ]);
 
                 $tokenId = $this->db->lastInsertId();
@@ -114,22 +119,38 @@ class TokenManager {
     }
     
     /**
-     * Calculate queue position based on priority
+     * Calculate queue position based on priority weight and issue order.
+     * Counts only tokens ahead of this one (higher priority weight OR same weight but issued earlier).
      */
     private function getQueuePosition($serviceCategoryId, $priorityType) {
         $priorityWeight = PRIORITY_WEIGHTS[$priorityType] ?? 50;
-        
+
+        // Build a CASE expression mapping priority_type to its weight
+        $weights = PRIORITY_WEIGHTS;
+        $cases = '';
+        foreach ($weights as $type => $w) {
+            $cases .= " WHEN priority_type = '" . $type . "' THEN " . $w;
+        }
+
+        // Count tokens that will be served before this one:
+        //   - tokens with strictly higher priority weight, OR
+        //   - tokens with the same priority weight that were issued before now (i.e. already in queue)
         $stmt = $this->db->prepare("
-            SELECT COUNT(*) as count
-            FROM tokens t
-            INNER JOIN service_categories sc ON t.service_category_id = sc.id
-            WHERE t.status = 'waiting'
-            AND t.service_category_id = ?
+            SELECT COUNT(*) AS cnt
+            FROM tokens
+            WHERE status = 'waiting'
+              AND service_category_id = ?
+              AND (
+                CASE {$cases} ELSE 50 END > ?
+                OR (
+                    CASE {$cases} ELSE 50 END = ?
+                    AND issued_at < NOW()
+                )
+              )
         ");
-        $stmt->execute([$serviceCategoryId]);
+        $stmt->execute([$serviceCategoryId, $priorityWeight, $priorityWeight]);
         $result = $stmt->fetch();
-        
-        return $result['count'] + 1;
+        return (int)($result['cnt'] ?? 0) + 1;
     }
     
     /**

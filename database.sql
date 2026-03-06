@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS service_categories (
     avg_service_time INT DEFAULT 10,
     description TEXT,
     is_active TINYINT(1) DEFAULT 1,
+    walkin_daily_limit INT NOT NULL DEFAULT 0,
+    online_daily_limit INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -64,11 +66,16 @@ CREATE TABLE IF NOT EXISTS tokens (
     reservation_code VARCHAR(20) NULL,
     reserved_for_date DATE NULL,
     recall_count TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    booking_type ENUM('walkin','prebooked') NOT NULL DEFAULT 'walkin',
+    booking_type ENUM('walkin','prebooked','online') NOT NULL DEFAULT 'walkin',
     vessel_id INT NULL,
     schedule_id INT NULL,
     passenger_count INT NOT NULL DEFAULT 1,
+    passengers_json TEXT NULL,
     fare_paid DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    customer_age TINYINT UNSIGNED NULL,
+    customer_sex ENUM('male','female','other') NULL,
+    customer_place VARCHAR(100) NULL,
+    qr_expires_at DATETIME NULL,
     FOREIGN KEY (service_category_id) REFERENCES service_categories(id),
     FOREIGN KEY (counter_id) REFERENCES service_counters(id) ON DELETE SET NULL,
     INDEX idx_token_number (token_number),

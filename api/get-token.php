@@ -37,7 +37,12 @@ try {
     if (!$token) {
         jsonResponse(false, 'Token not found', null, 404);
     }
-    
+
+    // Check QR expiry (15 minutes from issuance)
+    if (!empty($token['qr_expires_at']) && strtotime($token['qr_expires_at']) < time()) {
+        jsonResponse(false, 'This QR code has expired. It was valid for 15 minutes from time of issuance.', ['expired' => true, 'token_number' => $token['token_number']], 410);
+    }
+
     // Recalculate estimated wait time if still waiting
     if ($token['status'] === 'waiting') {
         $stmt = $db->prepare("

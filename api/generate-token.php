@@ -42,18 +42,45 @@ try {
     
     // Customer data
     $customerData = [
-        'name' => $input['customer_name'] ?? null,
-        'mobile' => $input['customer_mobile'] ?? null,
-        'email' => $input['customer_email'] ?? null
+        'name'  => $input['customer_name']  ?? null,
+        'mobile'=> $input['customer_mobile'] ?? null,
+        'email' => $input['customer_email']  ?? null,
+        'age'   => isset($input['customer_age'])   && $input['customer_age']   !== '' ? intval($input['customer_age'])   : null,
+        'sex'   => in_array($input['customer_sex'] ?? '', ['male','female','other']) ? $input['customer_sex'] : null,
+        'place' => isset($input['customer_place']) && $input['customer_place'] !== '' ? trim($input['customer_place']) : null,
     ];
     
     // Extended booking data
     $bookingData = [
-        'schedule_id'     => isset($input['schedule_id']) && $input['schedule_id'] ? intval($input['schedule_id']) : null,
-        'booking_type'    => in_array($input['booking_type'] ?? '', ['walkin','prebooked']) ? $input['booking_type'] : 'walkin',
-        'fare_paid'       => isset($input['fare_paid']) ? floatval($input['fare_paid']) : 0,
-        'passenger_count' => isset($input['passenger_count']) ? max(1, intval($input['passenger_count'])) : 1,
+        'schedule_id'    => isset($input['schedule_id']) && $input['schedule_id'] ? intval($input['schedule_id']) : null,
+        'booking_type'   => in_array($input['booking_type'] ?? '', ['walkin','prebooked','online']) ? $input['booking_type'] : 'walkin',
+        'fare_paid'      => isset($input['fare_paid']) ? floatval($input['fare_paid']) : 0,
+        'passenger_count'=> isset($input['passenger_count']) ? max(1, intval($input['passenger_count'])) : 1,
+        'passengers_json'=> $input['passengers_json'] ?? null,
     ];
+
+    // Enforce walkin / online daily slot limits
+    $db = getDB();
+    $scRow = $db->prepare("SELECT walkin_daily_limit, online_daily_limit FROM service_categories WHERE id = ?");
+    $scRow->execute([$serviceCategoryId]);
+    $sc = $scRow->fetch();
+    if ($sc) {
+        $btype = $bookingData['booking_type'];
+        if ($btype === 'walkin' && (int)$sc['walkin_daily_limit'] > 0) {
+            $used = $db->prepare("SELECT COUNT(*) FROM tokens WHERE service_category_id=? AND booking_type='walkin' AND DATE(issued_at)=CURDATE() AND status != 'cancelled'");
+            $used->execute([$serviceCategoryId]);
+            if ((int)$used->fetchColumn() >= (int)$sc['walkin_daily_limit']) {
+                jsonResponse(false, 'Walk-in slots for today are full.', ['type'=>'capacity_full'], 400);
+            }
+        }
+        if ($btype === 'online' && (int)$sc['online_daily_limit'] > 0) {
+            $used = $db->prepare("SELECT COUNT(*) FROM tokens WHERE service_category_id=? AND booking_type='online' AND DATE(issued_at)=CURDATE() AND status != 'cancelled'");
+            $used->execute([$serviceCategoryId]);
+            if ((int)$used->fetchColumn() >= (int)$sc['online_daily_limit']) {
+                jsonResponse(false, 'Online booking slots for today are full.', ['type'=>'capacity_full'], 400);
+            }
+        }
+    }
     
     // Get vessel_id if provided
     $vesselId = isset($input['vessel_id']) && $input['vessel_id'] ? intval($input['vessel_id']) : null;

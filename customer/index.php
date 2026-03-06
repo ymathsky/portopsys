@@ -448,6 +448,27 @@ foreach ($todaySchedulesData as $ts) {
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name <span class="text-red-500">*</span></label>
                         <input type="text" id="customer_name" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-all" placeholder="Enter your full name">
                     </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Age</label>
+                            <input type="number" id="customer_age" min="1" max="120" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-all" placeholder="Age">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Sex</label>
+                            <select id="customer_sex" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-all">
+                                <option value="">— Select —</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Place of Origin</label>
+                        <input type="text" id="customer_place" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-all" placeholder="City / Municipality">
+                    </div>
                     
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Mobile Number <span class="text-red-500">*</span></label>
@@ -458,6 +479,15 @@ foreach ($todaySchedulesData as $ts) {
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Email Address (Optional)</label>
                         <input type="email" id="customer_email" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring focus:ring-indigo-200 transition-all" placeholder="your.email@example.com">
                         <p class="text-sm text-gray-500 mt-1">For email notifications</p>
+                    </div>
+
+                    <!-- Additional Passengers -->
+                    <div id="additionalPassengersSection">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-semibold text-gray-700">Additional Passengers</label>
+                            <button type="button" onclick="addPassenger()" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">+ Add Passenger</button>
+                        </div>
+                        <div id="passengerList" class="space-y-2"></div>
                     </div>
                     
                     <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
@@ -691,6 +721,26 @@ foreach ($todaySchedulesData as $ts) {
     }
     
     // Step Navigation
+    // ── Additional Passengers ──────────────────────────────────────────────
+    let _paxCount = 0;
+    function addPassenger() {
+        _paxCount++;
+        const row = document.createElement('div');
+        row.className = 'passenger-row grid grid-cols-12 gap-2 items-center bg-gray-50 rounded-xl p-2';
+        row.innerHTML = `
+            <input type="text" class="pax-name col-span-5 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-indigo-400 focus:ring focus:ring-indigo-100" placeholder="Full name">
+            <input type="number" class="pax-age col-span-3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-indigo-400" placeholder="Age" min="1" max="120">
+            <select class="pax-sex col-span-3 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:border-indigo-400">
+                <option value="">Sex</option>
+                <option value="male">M</option>
+                <option value="female">F</option>
+                <option value="other">O</option>
+            </select>
+            <button type="button" onclick="this.closest('.passenger-row').remove()" class="col-span-1 text-red-400 hover:text-red-600 font-bold text-lg">✕</button>
+        `;
+        document.getElementById('passengerList').appendChild(row);
+    }
+
     function goToStep(step) {
         // Hide all steps
         document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
@@ -860,8 +910,11 @@ foreach ($todaySchedulesData as $ts) {
         const errBox = document.getElementById('generateError');
         if (errBox) errBox.classList.add('hidden');
         
-        const customerName = document.getElementById('customer_name').value;
+        const customerName   = document.getElementById('customer_name').value;
         const customerMobile = document.getElementById('customer_mobile').value;
+        const customerAge    = document.getElementById('customer_age').value;
+        const customerSex    = document.getElementById('customer_sex').value;
+        const customerPlace  = document.getElementById('customer_place').value;
         
         if (!customerName || !customerMobile) {
             alert('Please fill in your name and mobile number.');
@@ -870,17 +923,33 @@ foreach ($todaySchedulesData as $ts) {
             return;
         }
 
+        // Collect additional passengers
+        const extraPassengers = [];
+        document.querySelectorAll('.passenger-row').forEach(row => {
+            const n = row.querySelector('.pax-name').value.trim();
+            const a = row.querySelector('.pax-age').value;
+            const s = row.querySelector('.pax-sex').value;
+            if (n) extraPassengers.push({ name: n, age: a || null, sex: s || null });
+        });
+        const allPassengers = [
+            { name: customerName, age: customerAge || null, sex: customerSex || null, place: customerPlace || null }
+        ].concat(extraPassengers);
+
         const submitData = {
             service_category_id: formData.serviceId,
             priority_type: formData.priority,
-            customer_name: customerName,
+            customer_name:   customerName,
             customer_mobile: customerMobile,
-            customer_email: document.getElementById('customer_email').value,
-            vessel_id: formData.vesselId || null,
-            schedule_id: formData.scheduleId || null,
-            fare_paid: formData.farePaid || 0,
+            customer_email:  document.getElementById('customer_email').value,
+            customer_age:    customerAge  ? parseInt(customerAge)  : null,
+            customer_sex:    customerSex  || null,
+            customer_place:  customerPlace || null,
+            vessel_id:    formData.vesselId   || null,
+            schedule_id:  formData.scheduleId || null,
+            fare_paid:    formData.farePaid   || 0,
             booking_type: document.querySelector('input[name="booking_type"]:checked')?.value || 'walkin',
-            passenger_count: 1
+            passenger_count:  allPassengers.length,
+            passengers_json:  allPassengers,
         };
         
         try {
