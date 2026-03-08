@@ -61,9 +61,20 @@ class ServiceManager {
      */
     public function getCounterStatus() {
         $stmt = $this->db->query("SELECT * FROM counter_status_view ORDER BY counter_number ASC");
-        $counters = $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
 
-        // Add called_tokens_list: all tokens in 'called' state per counter (for mass call display)
+        // Deduplicate by counter id — the old view returns one row per called token
+        // when multiple tokens are in 'called' state (e.g. after a mass call).
+        $seen     = [];
+        $counters = [];
+        foreach ($rows as $row) {
+            if (!isset($seen[$row['id']])) {
+                $seen[$row['id']] = true;
+                $counters[] = $row;
+            }
+        }
+
+        // Add called_tokens_list: all tokens currently in 'called' state per counter
         $stmt2 = $this->db->query("
             SELECT counter_id,
                    GROUP_CONCAT(token_number ORDER BY called_at ASC SEPARATOR ',') AS called_tokens_list
