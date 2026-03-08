@@ -375,7 +375,13 @@ SELECT
     COALESCE(t.serving_at, t.called_at) as serving_at,
     TIMESTAMPDIFF(MINUTE, COALESCE(t.serving_at, t.called_at), NOW()) as service_duration_minutes
 FROM service_counters c
-LEFT JOIN tokens t ON c.id = t.counter_id AND t.status IN ('called', 'serving')
+LEFT JOIN tokens t ON t.id = (
+    -- Always pick exactly one token: prefer 'serving' over 'called', then most recent
+    SELECT id FROM tokens t2
+    WHERE t2.counter_id = c.id AND t2.status IN ('called','serving')
+    ORDER BY CASE t2.status WHEN 'serving' THEN 0 ELSE 1 END, t2.called_at DESC
+    LIMIT 1
+)
 LEFT JOIN service_categories sc ON t.service_category_id = sc.id
 WHERE c.is_active = 1;
 

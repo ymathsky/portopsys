@@ -934,9 +934,24 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     const BASE_URL = '<?php echo BASE_URL; ?>';
     let countdown = 5;
     let countdownInterval;
-    let lastAnnouncedToken = {}; // Store last flashed token per counter
-    let _flashTimer = null;
+    let lastAnnouncedToken = {};  // counter.id → last seen called_tokens_list string
+    let _flashQueue    = [];       // [{token, counter}]
+    let _flashRunning  = false;
+    let _flashTimer    = null;
     let _flashBarTimer = null;
+
+    // ── Flash queue (processes one-by-one with 4.5 s gap) ────────────────
+    function enqueueFlash(newTokens, counterName) {
+        newTokens.forEach(tk => _flashQueue.push({ token: tk, counter: counterName }));
+        if (!_flashRunning) processFlashQueue();
+    }
+    function processFlashQueue() {
+        if (_flashQueue.length === 0) { _flashRunning = false; return; }
+        _flashRunning = true;
+        const next = _flashQueue.shift();
+        showFlash(next.token, '➜ ' + next.counter);
+        setTimeout(processFlashQueue, 4500); // display duration + small gap
+    }
 
     // ── Flash overlay ─────────────────────────────────────────────────────
     function showFlash(tokenNumber, counterName) {
@@ -1046,43 +1061,58 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     function displayCounters(counters) {
         const grid = document.getElementById('counterGrid');
 
+        // Detect newly called tokens (single OR mass call) and queue flashes
+        counters.forEach(counter => {
+            const cname      = counter.counter_name || 'Counter ' + counter.counter_number;
+            const calledList = counter.called_tokens_list || '';
+            const lastList   = lastAnnouncedToken[counter.id] || '';
+
+            if (calledList !== lastList) {
+                const lastSet   = new Set(lastList ? lastList.split(',') : []);
+                const newTokens = calledList ? calledList.split(',').filter(t => t && !lastSet.has(t)) : [];
+                if (newTokens.length) enqueueFlash(newTokens, cname);
+                lastAnnouncedToken[counter.id] = calledList;
+            } else if (!calledList) {
+                lastAnnouncedToken[counter.id] = '';
+            }
+        });
+
+        // Render counter cards
         grid.innerHTML = counters.map(counter => {
             const cfg = DISP_STATUS[counter.current_status] || DISP_STATUS.available;
-
-            // Audio announcement — fires for new token AND for recalls (serving_at changes on recall)
-            if (counter.current_token) {
-                // Track token number + serving_at timestamp so a recall produces a different key
-                const trackKey = (counter.current_token || '') + '|' + (counter.serving_at || '');
-                const lastKey  = lastAnnouncedToken[counter.id] || '';
-                if (lastKey !== trackKey) {
-                    const cname = counter.counter_name || 'Counter ' + counter.counter_number;
-                    setTimeout(() => showFlash(counter.current_token, '➜ ' + cname), 300);
-                    lastAnnouncedToken[counter.id] = trackKey;
-                }
-            } else {
-                // No active token — reset so next call always flashes
-                lastAnnouncedToken[counter.id] = null;
-            }
 
             const durLine = (counter.current_status === 'serving' && counter.service_duration_minutes != null)
                 ? `<div style="font-size:12px;color:#64748b;margin-top:6px;">⏱ ${counter.service_duration_minutes} min serving</div>`
                 : '';
 
-            const rightPanel = counter.current_token
-                ? `<div class="token-display-side">
+            // Mass-call mode: show all called tokens in the card
+            const calledTokens = (counter.called_tokens_list || '').split(',').filter(Boolean);
+            const isMultiCall  = calledTokens.length > 1;
+
+            let rightPanel;
+            if (isMultiCall) {
+                rightPanel = `<div class="token-display-side" style="flex-direction:column;gap:6px;padding:12px;justify-content:center;">
+                    <div class="token-label">NOW CALLING (${calledTokens.length})</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+                        ${calledTokens.map(t =>
+                            `<div style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:900;font-size:clamp(12px,1.8vw,20px);padding:5px 10px;border-radius:8px;letter-spacing:1px;">${t}</div>`
+                        ).join('')}
+                    </div>
+                </div>`;
+            } else if (counter.current_token) {
+                rightPanel = `<div class="token-display-side">
                         <div class="token-label">Token Number</div>
                         <div class="token-number">${counter.current_token}</div>
                         <div class="service-name">${counter.current_service || ''}</div>
                         ${durLine}
-                   </div>`
-                : `<div class="token-display-side" style="background:${cfg.idleBg}; justify-content:center; align-items:center;">
-                        <div class="waiting-message" style="${counter.current_status==='break'?'color:#f59e0b;':counter.current_status==='closed'?'color:#94a3b8;':''}">  
+                   </div>`;
+            } else {
+                rightPanel = `<div class="token-display-side" style="background:${cfg.idleBg}; justify-content:center; align-items:center;">
+                        <div class="waiting-message" style="${counter.current_status==='break'?'color:#f59e0b;':counter.current_status==='closed'?'color:#94a3b8;':''}">
                             ${cfg.idleIcon}<br>${cfg.idleText}
                         </div>
                    </div>`;
-
-            return `<div class="counter-display ${cfg.cardClass}">
-                <div class="counter-info-side">
+            }
                     <div class="status-badge-display" style="${cfg.badgeStyle}">${cfg.label}</div>
                     <div class="counter-title">Counter</div>
                     <div class="counter-number">${counter.counter_number}</div>
