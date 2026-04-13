@@ -384,14 +384,15 @@ class TokenManager {
             $stmt = $this->db->prepare("
                 UPDATE tokens 
                 SET status = 'completed', completed_at = NOW(),
-                    service_duration = TIMESTAMPDIFF(MINUTE, serving_at, NOW()),
+                    serving_at = COALESCE(serving_at, NOW()),
+                    service_duration = TIMESTAMPDIFF(MINUTE, COALESCE(serving_at, NOW()), NOW()),
                     notes = ?
-                WHERE id = ? AND status = 'serving'
+                WHERE id = ? AND status IN ('called', 'serving')
             ");
             $stmt->execute([$notes, $tokenId]);
             
             if ($stmt->rowCount() === 0) {
-                throw new Exception("Token not in 'serving' status");
+                throw new Exception("Token not in 'called' or 'serving' status");
             }
             
             // Get token details for counter update
@@ -407,7 +408,7 @@ class TokenManager {
                 $stmt->execute([$token['counter_id']]);
             }
             
-            $this->logTokenHistory($tokenId, 'serving', 'completed', $token['counter_id'], $_SESSION['username'] ?? 'System');
+            $this->logTokenHistory($tokenId, $token['status'] ?? 'called', 'completed', $token['counter_id'], $_SESSION['username'] ?? 'System');
             
             return true;
         } catch (Exception $e) {
