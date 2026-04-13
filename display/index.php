@@ -732,7 +732,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
     
     <!-- Token Flash Overlay -->
     <div id="flashOverlay">
-        <div class="flash-label">NOW SERVING</div>
+        <div class="flash-label">NOW CALLING</div>
         <div class="flash-token" id="flashToken"></div>
         <div class="flash-counter" id="flashCounter"></div>
         <div class="flash-bar" id="flashBar"></div>
@@ -814,7 +814,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         _flashRunning = true;
         const next = _flashQueue.shift();
         showFlash(next.token, '➜ ' + next.counter);
-        setTimeout(processFlashQueue, 4500); // display duration + small gap
+        setTimeout(processFlashQueue, 2500); // display duration + small gap
     }
 
     // ── Flash overlay ─────────────────────────────────────────────────────
@@ -835,13 +835,13 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         bar.style.width = '0%';
         // Force reflow
         bar.getBoundingClientRect();
-        bar.style.transition = 'width 4s linear';
+        bar.style.transition = 'width 2.2s linear';
         bar.style.width = '100%';
 
         _flashTimer = setTimeout(() => {
             overlay.classList.remove('show');
             bar.style.width = '0%';
-        }, 4000);
+        }, 2200);
     }
 
     // Hide flash on click (manual dismiss)
