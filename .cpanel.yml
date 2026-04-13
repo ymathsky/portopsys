@@ -3,3 +3,5 @@ deployment:
   tasks:
     - /bin/mkdir -p $HOME/public_html/qs
     - /bin/cp -rf . $HOME/public_html/qs/
+    - /bin/mkdir -p $HOME/portopsys.md-officesupport.com
+    - /bin/cp -rf . $HOME/portopsys.md-officesupport.com/
