@@ -221,9 +221,9 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                 gap: 20px;
             }
 
-            .counter-display {
+            .counter-card {
                 height: auto;
-                min-height: 160px;
+                min-height: 140px;
                 flex-direction: column;
             }
 
@@ -375,221 +375,153 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             }
         }
         
-        /* Card Styling - Modern Glass Morphism */
-        .counter-display {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 28px;
+        /* ── TV Scoreboard Cards ─────────────────────── */
+        .counter-card {
+            background: rgba(8, 12, 30, 0.88);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 
-                0 8px 32px rgba(31, 38, 135, 0.15),
-                0 2px 8px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.8);
             display: flex;
-            min-height: 180px;
+            min-height: 170px;
             height: auto;
             position: relative;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: border-color 0.4s, box-shadow 0.4s;
+            box-shadow: 0 6px 40px rgba(0,0,0,0.45);
             align-items: stretch;
         }
 
-        .counter-display:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 
-                0 20px 60px rgba(31, 38, 135, 0.25),
-                0 8px 20px rgba(0, 0, 0, 0.15),
-                inset 0 1px 1px rgba(255, 255, 255, 0.9);
-        }
-
-        /* Gradient Border Effect with Glow */
-        .counter-display::before {
+        /* Accent bar */
+        .counter-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
+            width: 5px; height: 100%;
+            background: rgba(255,255,255,0.1);
+            transition: background 0.3s, box-shadow 0.3s, width 0.3s;
+        }
+        .counter-card.serving::before {
+            background: linear-gradient(180deg, #4ade80, #22c55e);
+            box-shadow: 0 0 22px rgba(74,222,128,0.9), 0 0 50px rgba(74,222,128,0.4);
             width: 6px;
-            height: 100%;
-            background: linear-gradient(180deg, 
-                rgba(148, 163, 184, 0.6) 0%, 
-                rgba(148, 163, 184, 0.3) 100%);
-            transition: all 0.3s ease;
         }
-        
-        .counter-display.serving {
-            background: rgba(255, 255, 255, 0.98);
-            box-shadow: 
-                0 12px 48px rgba(16, 185, 129, 0.2),
-                0 4px 12px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.9);
+        .counter-card.called::before {
+            background: linear-gradient(180deg, #fbbf24, #f59e0b);
+            box-shadow: 0 0 28px rgba(251,191,36,1), 0 0 60px rgba(251,191,36,0.5);
+            width: 6px;
+            animation: accentPulse 1.4s ease-in-out infinite;
         }
-        
-        .counter-display.serving::before {
-            background: var(--success-gradient);
-            box-shadow: 
-                0 0 25px rgba(56, 239, 125, 0.7),
-                0 0 50px rgba(56, 239, 125, 0.3);
-            width: 8px;
+        .counter-card.available::before { background: rgba(100,116,139,0.35); }
+        .counter-card.on-break::before {
+            background: linear-gradient(180deg, #fb923c, #f97316);
+            box-shadow: 0 0 18px rgba(251,146,60,0.6);
         }
-
-        .counter-display.called {
-            animation: pulse-card 2s infinite;
-            border-color: rgba(245, 87, 108, 0.3);
-            background: rgba(255, 255, 255, 0.98);
+        @keyframes accentPulse {
+            0%,100% { box-shadow: 0 0 28px rgba(251,191,36,1), 0 0 60px rgba(251,191,36,0.5); }
+            50%      { box-shadow: 0 0 46px rgba(251,191,36,1), 0 0 90px rgba(251,191,36,0.7); }
         }
-
-        .counter-display.called::before {
-            background: var(--alert-gradient);
-            box-shadow: 
-                0 0 35px rgba(245, 87, 108, 0.9),
-                0 0 60px rgba(245, 87, 108, 0.4);
-            animation: pulse-gradient 2s infinite;
+        .counter-card.serving {
+            border-color: rgba(74,222,128,0.22);
+            box-shadow: 0 6px 50px rgba(74,222,128,0.12);
+        }
+        .counter-card.called {
+            border-color: rgba(251,191,36,0.28);
+            animation: cardGlow 1.4s ease-in-out infinite;
+        }
+        @keyframes cardGlow {
+            0%,100% { box-shadow: 0 6px 50px rgba(251,191,36,0.18); }
+            50%      { box-shadow: 0 8px 70px rgba(251,191,36,0.35); }
         }
 
-        .counter-display.on-break::before {
-            background: linear-gradient(180deg, #f59e0b 0%, #f97316 100%);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-            width: 8px;
-        }
-
-        .counter-display.closed-state {
-            opacity: 0.55;
-        }
-        .counter-display.closed-state::before {
-            background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
-        }
-
-        @keyframes pulse-card {
-            0%, 100% { 
-                box-shadow: 
-                    0 12px 48px rgba(245, 87, 108, 0.25),
-                    0 4px 12px rgba(0, 0, 0, 0.1),
-                    inset 0 1px 1px rgba(255, 255, 255, 0.9);
-            }
-            50% { 
-                box-shadow: 
-                    0 20px 70px rgba(245, 87, 108, 0.4),
-                    0 8px 20px rgba(245, 87, 108, 0.2),
-                    inset 0 1px 1px rgba(255, 255, 255, 0.9);
-            }
-        }
-
-        @keyframes pulse-gradient {
-            0%, 100% { width: 8px; }
-            50% { width: 12px; }
-        }
-
-        /* Left Side: Counter Info - Enhanced */
+        /* Left info panel */
         .counter-info-side {
-            flex: 0 0 48%;
-            min-width: 0;
-            padding: 22px 18px 22px 26px;
+            flex: 0 0 36%;
+            padding: 20px 14px 20px 22px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: linear-gradient(135deg, 
-                rgba(102, 126, 234, 0.08) 0%, 
-                rgba(118, 75, 162, 0.08) 50%,
-                rgba(102, 126, 234, 0.05) 100%);
-            position: relative;
-            overflow: hidden;
-            border-right: 1px solid rgba(102, 126, 234, 0.12);
-        }
-
-        .counter-info-side::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .counter-title {
-            font-size: 11px;
-            color: #8b5cf6;
-            text-transform: uppercase;
-            letter-spacing: 2.5px;
-            font-weight: 800;
-            margin-bottom: 4px;
-            text-shadow: 0 2px 4px rgba(139, 92, 246, 0.1);
-        }
-
-        .counter-number {
-            font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            font-size: clamp(28px, 4.5vw, 58px);
-            font-weight: 900;
-            background: linear-gradient(135deg, #667eea 0%, #8b5cf6 50%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1.1;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.2));
+            gap: 4px;
+            border-right: 1px solid rgba(255,255,255,0.06);
             position: relative;
             z-index: 1;
+        }
+        .status-badge-display {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 4px 11px;
+            border-radius: 20px;
+            display: inline-block;
+            align-self: flex-start;
+            margin-bottom: 6px;
+        }
+        .counter-card.serving .status-badge-display {
+            background: rgba(74,222,128,0.15); color: #4ade80;
+            border: 1px solid rgba(74,222,128,0.35);
+        }
+        .counter-card.called .status-badge-display {
+            background: rgba(251,191,36,0.15); color: #fbbf24;
+            border: 1px solid rgba(251,191,36,0.35);
+        }
+        .counter-card.available .status-badge-display {
+            background: rgba(100,116,139,0.15); color: #94a3b8;
+            border: 1px solid rgba(100,116,139,0.25);
+        }
+        .counter-card.on-break .status-badge-display {
+            background: rgba(251,146,60,0.15); color: #fb923c;
+            border: 1px solid rgba(251,146,60,0.3);
+        }
+        .counter-title {
+            font-size: 10px;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+        .counter-number {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(20px, 3.5vw, 48px);
+            font-weight: 900;
+            color: #fff;
+            line-height: 1.05;
+            letter-spacing: 1px;
             word-break: break-word;
             overflow-wrap: break-word;
             max-width: 100%;
+            text-shadow: 0 2px 20px rgba(255,255,255,0.15);
         }
-
         .staff-info {
-            font-size: 12px;
-            color: #475569;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            position: relative;
-            z-index: 1;
+            font-size: 11px;
+            color: rgba(255,255,255,0.35);
+            font-weight: 500;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
         }
-
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px; height: 8px;
             border-radius: 50%;
-            background: #cbd5e1;
-            transition: all 0.3s ease;
+            background: rgba(148,163,184,0.35);
+            flex-shrink: 0;
+        }
+        .counter-card.serving .status-dot, .counter-card.called .status-dot {
+            background: #4ade80;
+            box-shadow: 0 0 8px rgba(74,222,128,0.8);
+            animation: dotPulse 2s infinite;
+        }
+        .counter-card.called .status-dot { background: #fbbf24; box-shadow: 0 0 8px rgba(251,191,36,0.8); }
+        @keyframes dotPulse {
+            0%,100% { transform: scale(1); }
+            50%      { transform: scale(1.5); }
         }
 
-        .serving .status-dot, .called .status-dot {
-            background: #10b981;
-            box-shadow: 
-                0 0 0 3px rgba(16, 185, 129, 0.2),
-                0 0 15px rgba(16, 185, 129, 0.6);
-            animation: pulse-dot 2s infinite;
-        }
-
-        .on-break .status-dot {
-            background: #f59e0b;
-            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2), 0 0 12px rgba(245, 158, 11, 0.5);
-        }
-
-        .closed-state .status-dot {
-            background: #94a3b8;
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { 
-                transform: scale(1);
-                box-shadow: 
-                    0 0 0 3px rgba(16, 185, 129, 0.2),
-                    0 0 15px rgba(16, 185, 129, 0.6);
-            }
-            50% { 
-                transform: scale(1.2);
-                box-shadow: 
-                    0 0 0 6px rgba(16, 185, 129, 0.15),
-                    0 0 20px rgba(16, 185, 129, 0.8);
-            }
-        }
-
-        /* Right Side: Token Display - Enhanced */
+        /* Right token panel */
         .token-display-side {
             flex: 1;
             min-width: 0;
@@ -597,126 +529,57 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 22px 18px;
+            padding: 20px 18px;
             position: relative;
-            background: linear-gradient(135deg, 
-                rgba(240, 147, 251, 0.06) 0%, 
-                rgba(245, 87, 108, 0.06) 50%,
-                rgba(240, 147, 251, 0.04) 100%);
             overflow: hidden;
         }
-
-        .token-display-side::after {
+        .counter-card.serving .token-display-side::before,
+        .counter-card.called .token-display-side::before {
             content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(245, 87, 108, 0.08) 0%, transparent 70%);
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at center, rgba(74,222,128,0.05) 0%, transparent 70%);
             pointer-events: none;
         }
-
+        .counter-card.called .token-display-side::before {
+            background: radial-gradient(ellipse at center, rgba(251,191,36,0.07) 0%, transparent 70%);
+        }
         .token-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 2.5px;
-            color: #94a3b8;
-            font-weight: 800;
-            margin-bottom: 10px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .token-number {
-            font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            font-size: clamp(32px, 5.5vw, 80px);
-            font-weight: 900;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ff6b6b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1.1;
+            color: rgba(255,255,255,0.25);
+            font-weight: 700;
             margin-bottom: 8px;
-            text-align: center;
-            filter: drop-shadow(0 4px 8px rgba(240, 147, 251, 0.25));
             position: relative;
             z-index: 1;
-            letter-spacing: 1px;
-            word-break: break-word;
+        }
+        .token-number {
+            font-family: 'Poppins', sans-serif;
+            font-size: clamp(28px, 5.5vw, 86px);
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            letter-spacing: 2px;
+            word-break: break-all;
             max-width: 100%;
-        }
-
-        .service-name {
-            font-size: 15px;
-            color: #475569;
-            text-align: center;
-            font-weight: 600;
-            max-width: 90%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
             position: relative;
             z-index: 1;
+            color: rgba(255,255,255,0.18);
         }
-
-        /* Status Badge - Enhanced */
-        .status-badge-display {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 
-                0 4px 12px rgba(0, 0, 0, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.5);
-            transition: all 0.3s ease;
-            margin-bottom: 12px;
-            align-self: flex-start;
+        .counter-card.serving .token-number {
+            color: #4ade80;
+            text-shadow: 0 0 30px rgba(74,222,128,0.55), 0 0 70px rgba(74,222,128,0.2);
         }
-
-        .status-badge-display.open {
-            background: linear-gradient(135deg, rgba(148, 163, 184, 0.3), rgba(148, 163, 184, 0.2));
-            color: #64748b;
+        .counter-card.called .token-number {
+            color: #fbbf24;
+            text-shadow: 0 0 35px rgba(251,191,36,0.7), 0 0 80px rgba(251,191,36,0.3);
+            animation: tokenGlow 1.4s ease-in-out infinite;
         }
-
-        .status-badge-display.serving {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(56, 239, 125, 0.15));
-            color: #059669;
-            box-shadow: 
-                0 4px 12px rgba(16, 185, 129, 0.2),
-                0 0 20px rgba(16, 185, 129, 0.1),
-                inset 0 1px 1px rgba(255, 255, 255, 0.5);
+        @keyframes tokenGlow {
+            0%,100% { text-shadow: 0 0 35px rgba(251,191,36,0.7), 0 0 80px rgba(251,191,36,0.3); }
+            50%      { text-shadow: 0 0 55px rgba(251,191,36,1),   0 0 120px rgba(251,191,36,0.5); }
         }
-        }
-
-        .status-serving .status-badge-display {
-            background: var(--success-gradient);
-            color: white;
-            box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3);
-        }
-
-        .status-called .status-badge-display {
-            background: var(--alert-gradient);
-            color: white;
-            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.3);
-            animation: pulse-badge 1.5s infinite;
-        }
-
-        @keyframes pulse-badge {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .status-available .status-badge-display {
-            background: rgba(148, 163, 184, 0.15);
-            color: #64748b;
-            backdrop-filter: blur(10px);
-        }
+        .service-name { display: none; }
 
         /* Connection Status */
         .connection-status {
@@ -820,9 +683,10 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         }
 
         .waiting-message {
-            color: #94a3b8;
-            font-size: 24px;
-            font-weight: 600;
+            font-size: clamp(22px, 3.5vw, 48px);
+            font-weight: 900;
+            color: rgba(255,255,255,0.09);
+            letter-spacing: 6px;
             text-align: center;
         }
         
@@ -1022,53 +886,23 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
         }
     }
     
-    // Status config for display board cards
-    const DISP_STATUS = {
-        available: {
-            cardClass:  'available',
-            badgeStyle: 'background:linear-gradient(135deg,rgba(148,163,184,0.3),rgba(148,163,184,0.2));color:#475569;',
-            label:      'OPEN',
-            idleIcon:   '⏳',
-            idleText:   'Next',
-            idleBg:     'rgba(0,0,0,0.08)'
-        },
-        serving: {
-            cardClass:  'serving called',
-            badgeStyle: 'background:linear-gradient(135deg,#10b981,#38ef7d);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,0.35);',
-            label:      'SERVING',
-            idleIcon:   null,
-            idleText:   null,
-            idleBg:     null
-        },
-        break: {
-            cardClass:  'on-break',
-            badgeStyle: 'background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 4px 12px rgba(245,158,11,0.35);',
-            label:      'ON BREAK',
-            idleIcon:   '☕',
-            idleText:   'On Break',
-            idleBg:     'rgba(245,158,11,0.08)'
-        },
-        closed: {
-            cardClass:  'closed-state',
-            badgeStyle: 'background:linear-gradient(135deg,#94a3b8,#64748b);color:#fff;',
-            label:      'CLOSED',
-            idleIcon:   '🚫',
-            idleText:   'Closed',
-            idleBg:     'rgba(0,0,0,0.12)'
-        }
+    const STATUS_LABEL = {
+        serving:   'NOW SERVING',
+        called:    'NOW CALLING',
+        available: 'OPEN',
+        break:     'ON BREAK',
+        closed:    'CLOSED'
     };
 
     function displayCounters(counters) {
         const grid = document.getElementById('counterGrid');
-        // Only show counters that are not closed or on break
         counters = counters.filter(c => c.current_status !== 'closed' && c.current_status !== 'break');
 
-        // Detect newly called tokens (single OR mass call) and queue flashes
+        // Detect newly called tokens and queue flashes
         counters.forEach(counter => {
             const cname      = counter.counter_name || 'Counter ' + counter.counter_number;
             const calledList = counter.called_tokens_list || '';
             const lastList   = lastAnnouncedToken[counter.id] || '';
-
             if (calledList !== lastList) {
                 const lastSet   = new Set(lastList ? lastList.split(',') : []);
                 const newTokens = calledList ? calledList.split(',').filter(t => t && !lastSet.has(t)) : [];
@@ -1079,46 +913,34 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
             }
         });
 
-        // Render counter cards
         grid.innerHTML = counters.map(counter => {
-            const cfg = DISP_STATUS[counter.current_status] || DISP_STATUS.available;
+            const status      = counter.current_status;
+            const cardClass   = status === 'serving' ? 'serving' : status === 'called' ? 'called' : 'available';
+            const statusLabel = STATUS_LABEL[status] || 'OPEN';
 
-            const durLine = (counter.current_status === 'serving' && counter.service_duration_minutes != null)
-                ? `<div style="font-size:12px;color:#64748b;margin-top:6px;">⏱ ${counter.service_duration_minutes} min serving</div>`
-                : '';
-
-            // Mass-call mode: show all called tokens in the card
             const calledTokens = (counter.called_tokens_list || '').split(',').filter(Boolean);
             const isMultiCall  = calledTokens.length > 1;
 
-            let rightPanel;
+            let tokenHTML;
             if (isMultiCall) {
-                rightPanel = `<div class="token-display-side" style="flex-direction:column;gap:6px;padding:12px;justify-content:center;">
+                tokenHTML = `
                     <div class="token-label">NOW CALLING (${calledTokens.length})</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;">
                         ${calledTokens.map(t =>
-                            `<div style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:900;font-size:clamp(16px,2.8vw,36px);padding:8px 16px;border-radius:10px;letter-spacing:1px;">${t}</div>`
-                        ).join('')}
-                    </div>
-                </div>`;
+                            `<span style="font-family:'Poppins',sans-serif;font-weight:900;font-size:clamp(14px,2.4vw,32px);color:#fbbf24;text-shadow:0 0 22px rgba(251,191,36,0.75);letter-spacing:1px;">${t}</span>`
+                        ).join('<span style="color:rgba(251,191,36,0.3);font-size:0.8em;"> • </span>')}
+                    </div>`;
             } else if (counter.current_token) {
-                rightPanel = `<div class="token-display-side">
-                        <div class="token-label">Token Number</div>
-                        <div class="token-number">${counter.current_token}</div>
-                        <div class="service-name">${counter.current_service || ''}</div>
-                        ${durLine}
-                   </div>`;
+                tokenHTML = `
+                    <div class="token-label">TOKEN NUMBER</div>
+                    <div class="token-number">${counter.current_token}</div>`;
             } else {
-                rightPanel = `<div class="token-display-side" style="background:${cfg.idleBg}; justify-content:center; align-items:center;">
-                        <div class="waiting-message" style="${counter.current_status==='break'?'color:#f59e0b;':counter.current_status==='closed'?'color:#94a3b8;':''}">
-                            ${cfg.idleIcon}<br>${cfg.idleText}
-                        </div>
-                   </div>`;
+                tokenHTML = `<div class="waiting-message">– – –</div>`;
             }
 
-            return `<div class="counter-card ${cfg.cardClass}">
+            return `<div class="counter-card ${cardClass}">
                 <div class="counter-info-side">
-                    <div class="status-badge-display" style="${cfg.badgeStyle}">${cfg.label}</div>
+                    <div class="status-badge-display">${statusLabel}</div>
                     <div class="counter-title">Counter</div>
                     <div class="counter-number">${counter.counter_number}</div>
                     <div class="staff-info">
@@ -1126,7 +948,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                         ${counter.counter_name || ''}
                     </div>
                 </div>
-                ${rightPanel}
+                <div class="token-display-side">${tokenHTML}</div>
             </div>`;
         }).join('');
     }
