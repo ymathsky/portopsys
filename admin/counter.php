@@ -266,13 +266,12 @@ include __DIR__ . '/includes/header.php';
                         
                         <!-- Action Buttons -->
                         <div class="flex justify-center gap-4 flex-wrap">
-                            <?php if ($currentToken['status'] === 'called'): ?>
-                                <button onclick="startServing(<?php echo $currentToken['id']; ?>)" class="group px-10 py-4 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white rounded-2xl hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 font-bold shadow-2xl hover:shadow-green-500/50 transform hover:scale-105 flex items-center gap-3">
+                            <?php if (in_array($currentToken['status'], ['called', 'serving'])): ?>
+                                <button onclick="completeToken(<?php echo $currentToken['id']; ?>)" class="group px-10 py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white rounded-2xl hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 transition-all duration-300 font-bold shadow-2xl hover:shadow-indigo-500/50 transform hover:scale-105 flex items-center gap-3">
                                     <svg class="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
-                                    Start Service
+                                    Complete Service
                                 </button>
                                 <!-- Recall: re-announce the same token -->
                                 <button onclick="recallCurrentToken(<?php echo $currentToken['id']; ?>)" class="group px-8 py-4 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-2xl hover:from-violet-600 hover:to-purple-700 transition-all duration-300 font-bold shadow-2xl hover:shadow-purple-500/50 transform hover:scale-105 flex items-center gap-3" title="Re-announce this token number">
@@ -283,13 +282,6 @@ include __DIR__ . '/includes/header.php';
                                     <?php if ($currentToken['recall_count'] > 0): ?>
                                         <span class="bg-white/30 text-white text-xs font-black px-2 py-0.5 rounded-full"><?php echo $currentToken['recall_count']; ?>x</span>
                                     <?php endif; ?>
-                                </button>
-                            <?php elseif ($currentToken['status'] === 'serving'): ?>
-                                <button onclick="completeToken(<?php echo $currentToken['id']; ?>)" class="group px-10 py-4 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 text-white rounded-2xl hover:from-blue-600 hover:via-indigo-600 hover:to-purple-600 transition-all duration-300 font-bold shadow-2xl hover:shadow-indigo-500/50 transform hover:scale-105 flex items-center gap-3">
-                                    <svg class="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                    Complete Service
                                 </button>
                             <?php endif; ?>
                             <!-- Transfer: move this token to another counter -->
