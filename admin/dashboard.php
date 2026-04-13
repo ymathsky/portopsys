@@ -242,6 +242,30 @@ include __DIR__ . '/includes/header.php';
         </button>
         <p id="eodFeedback" class="text-xs text-center mt-2 text-gray-400"></p>
     </div>
+
+    <!-- Clear All Tokens -->
+    <div class="glassmorphic rounded-2xl shadow-xl p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg">
+                <span class="text-xl">🗑️</span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-gray-900">Clear All Tokens</h3>
+                <p class="text-xs text-gray-500">Permanently delete every token record</p>
+            </div>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-xs text-red-800 space-y-1">
+            <div>⚠️ Deletes <strong>all</strong> tokens from all dates</div>
+            <div>• Clears token history &amp; notifications</div>
+            <div>• Resets counters &amp; token numbering to 0001</div>
+            <div>• <strong>This cannot be undone</strong></div>
+        </div>
+        <button onclick="confirmClearAllTokens()" id="btnClearAll"
+            class="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
+            🗑️ Clear All Tokens
+        </button>
+        <p id="clearAllFeedback" class="text-xs text-center mt-2 text-gray-400"></p>
+    </div>
 </div>
 <?php endif; ?>
 
@@ -439,6 +463,32 @@ async function confirmEndOfDay() {
     } catch(e) {
         document.getElementById('eodFeedback').textContent = '❌ Network error';
         btn.disabled=false; btn.textContent='🔄 Run End of Day Reset';
+    }
+}
+
+async function confirmClearAllTokens() {
+    if (!confirm('⚠️ CLEAR ALL TOKENS?\n\nThis will permanently DELETE every token from ALL dates.\n\n• Token history will be erased\n• Counters will reset\n• Token numbering restarts at 0001\n\nThis CANNOT be undone. Are you absolutely sure?')) return;
+    if (!confirm('Last warning: ALL token data will be permanently lost. Continue?')) return;
+    const btn = document.getElementById('btnClearAll');
+    btn.disabled = true;
+    btn.textContent = '⏳ Clearing…';
+    document.getElementById('clearAllFeedback').textContent = '';
+    try {
+        const res = await fetch('<?php echo BASE_URL; ?>/api/clear-all-tokens.php', {method:'POST'});
+        const result = await res.json();
+        if (result.success) {
+            document.getElementById('clearAllFeedback').textContent = '✅ All tokens cleared. Numbers reset to 0001.';
+            document.getElementById('clearAllFeedback').className = 'text-xs text-center mt-2 text-emerald-600 font-semibold';
+            btn.textContent = '✅ Cleared';
+            setTimeout(()=>{ btn.disabled=false; btn.textContent='🗑️ Clear All Tokens'; }, 5000);
+        } else {
+            document.getElementById('clearAllFeedback').textContent = '❌ ' + result.message;
+            document.getElementById('clearAllFeedback').className = 'text-xs text-center mt-2 text-red-500';
+            btn.disabled=false; btn.textContent='🗑️ Clear All Tokens';
+        }
+    } catch(e) {
+        document.getElementById('clearAllFeedback').textContent = '❌ Network error';
+        btn.disabled=false; btn.textContent='🗑️ Clear All Tokens';
     }
 }
 </script>
