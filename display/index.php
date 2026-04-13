@@ -1113,6 +1113,9 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                         </div>
                    </div>`;
             }
+
+            return `<div class="counter-card ${cfg.cardClass}">
+                <div class="counter-info-side">
                     <div class="status-badge-display" style="${cfg.badgeStyle}">${cfg.label}</div>
                     <div class="counter-title">Counter</div>
                     <div class="counter-number">${counter.counter_number}</div>
