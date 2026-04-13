@@ -1060,6 +1060,8 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
 
     function displayCounters(counters) {
         const grid = document.getElementById('counterGrid');
+        // Only show counters that are not closed or on break
+        counters = counters.filter(c => c.current_status !== 'closed' && c.current_status !== 'break');
 
         // Detect newly called tokens (single OR mass call) and queue flashes
         counters.forEach(counter => {
