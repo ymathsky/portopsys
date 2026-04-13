@@ -269,6 +269,38 @@ include __DIR__ . '/includes/header.php';
 </div>
 <?php endif; ?>
 
+<!-- PIN Modal for Clear All Tokens -->
+<div id="pinModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
+            <h3 class="text-white font-bold text-lg">🔐 Enter Your PIN</h3>
+            <button onclick="closePinModal()" class="text-white/80 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-600 mb-4">Enter your admin PIN to confirm clearing <strong>all tokens</strong>.</p>
+            <div class="flex gap-2 justify-center mb-5" id="pinDots">
+                <?php for($i=0;$i<6;$i++): ?>
+                <div class="pin-dot w-10 h-10 rounded-xl border-2 border-gray-200 flex items-center justify-center text-xl font-bold text-gray-800 bg-gray-50 transition-all" data-index="<?php echo $i; ?>"></div>
+                <?php endfor; ?>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
+                <button onclick="pinKey('<?php echo $k; ?>')"
+                    class="py-3 rounded-xl font-bold text-lg transition-all
+                    <?php echo $k==='' ? 'invisible' : ($k==='⌫' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-gray-100 text-gray-800 hover:bg-indigo-100 hover:text-indigo-700 active:scale-95'); ?>">
+                    <?php echo $k; ?>
+                </button>
+                <?php endforeach; ?>
+            </div>
+            <p id="pinError" class="text-xs text-red-500 text-center min-h-[16px] mb-2"></p>
+            <button onclick="submitPinClear()" id="btnPinSubmit"
+                class="w-full py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold text-sm hover:shadow-lg transition-all">
+                Confirm Clear All Tokens
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════
      ANALYTICS CHARTS
 ════════════════════════════════════════════════════════════ -->
@@ -467,29 +499,64 @@ async function confirmEndOfDay() {
 }
 
 async function confirmClearAllTokens() {
-    if (!confirm('⚠️ CLEAR ALL TOKENS?\n\nThis will permanently DELETE every token from ALL dates.\n\n• Token history will be erased\n• Counters will reset\n• Token numbering restarts at 0001\n\nThis CANNOT be undone. Are you absolutely sure?')) return;
-    if (!confirm('Last warning: ALL token data will be permanently lost. Continue?')) return;
-    const btn = document.getElementById('btnClearAll');
-    btn.disabled = true;
-    btn.textContent = '⏳ Clearing…';
-    document.getElementById('clearAllFeedback').textContent = '';
+    if (!confirm('⚠️ CLEAR ALL TOKENS?\n\nThis will permanently DELETE every token from ALL dates.\n\nThis CANNOT be undone. Are you absolutely sure?')) return;
+    openPinModal();
+}
+
+let _pinValue = '';
+function openPinModal() {
+    _pinValue = '';
+    renderPinDots();
+    document.getElementById('pinError').textContent = '';
+    document.getElementById('pinModal').classList.remove('hidden');
+}
+function closePinModal() {
+    document.getElementById('pinModal').classList.add('hidden');
+    _pinValue = '';
+    renderPinDots();
+}
+function pinKey(k) {
+    if (k === '⌫') { _pinValue = _pinValue.slice(0,-1); }
+    else if (k !== '' && _pinValue.length < 6) { _pinValue += String(k); }
+    renderPinDots();
+    if (_pinValue.length === 6) submitPinClear();
+}
+function renderPinDots() {
+    document.querySelectorAll('.pin-dot').forEach((dot, i) => {
+        dot.textContent = i < _pinValue.length ? '●' : '';
+        dot.classList.toggle('border-indigo-400', i < _pinValue.length);
+        dot.classList.toggle('bg-indigo-50',     i < _pinValue.length);
+        dot.classList.toggle('border-gray-200',  i >= _pinValue.length);
+        dot.classList.toggle('bg-gray-50',       i >= _pinValue.length);
+    });
+}
+async function submitPinClear() {
+    if (_pinValue.length < 1) { document.getElementById('pinError').textContent = 'Enter your PIN.'; return; }
+    const btn = document.getElementById('btnPinSubmit');
+    btn.disabled = true; btn.textContent = '⏳ Verifying…';
+    document.getElementById('pinError').textContent = '';
     try {
-        const res = await fetch('<?php echo BASE_URL; ?>/api/clear-all-tokens.php', {method:'POST'});
+        const res = await fetch('<?php echo BASE_URL; ?>/api/clear-all-tokens.php', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({pin: _pinValue})
+        });
         const result = await res.json();
         if (result.success) {
+            closePinModal();
             document.getElementById('clearAllFeedback').textContent = '✅ All tokens cleared. Numbers reset to 0001.';
             document.getElementById('clearAllFeedback').className = 'text-xs text-center mt-2 text-emerald-600 font-semibold';
-            btn.textContent = '✅ Cleared';
-            setTimeout(()=>{ btn.disabled=false; btn.textContent='🗑️ Clear All Tokens'; }, 5000);
+            const btnCA = document.getElementById('btnClearAll');
+            btnCA.textContent = '✅ Cleared';
+            setTimeout(()=>{ btnCA.disabled=false; btnCA.textContent='🗑️ Clear All Tokens'; }, 5000);
         } else {
-            document.getElementById('clearAllFeedback').textContent = '❌ ' + result.message;
-            document.getElementById('clearAllFeedback').className = 'text-xs text-center mt-2 text-red-500';
-            btn.disabled=false; btn.textContent='🗑️ Clear All Tokens';
+            _pinValue = ''; renderPinDots();
+            document.getElementById('pinError').textContent = '❌ ' + result.message;
         }
     } catch(e) {
-        document.getElementById('clearAllFeedback').textContent = '❌ Network error';
-        btn.disabled=false; btn.textContent='🗑️ Clear All Tokens';
+        document.getElementById('pinError').textContent = '❌ Network error';
     }
+    btn.disabled = false; btn.textContent = 'Confirm Clear All Tokens';
 }
 </script>
 
