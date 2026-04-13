@@ -706,14 +706,14 @@ function showNotification(message, type = 'info') {
 function openMassCallModal() {
     document.getElementById('massCallResult').classList.add('hidden');
     document.getElementById('massCallResult').innerHTML = '';
-    document.getElementById('massCallCount').value = 5;
+    document.getElementById('massCallCount').value = 10;
     document.getElementById('massCallModal').classList.remove('hidden');
 }
 function closeMassCallModal() {
     document.getElementById('massCallModal').classList.add('hidden');
 }
 function executeMassCall() {
-    const count = Math.max(1, Math.min(10, parseInt(document.getElementById('massCallCount').value) || 5));
+    const count = Math.max(1, Math.min(10, parseInt(document.getElementById('massCallCount').value) || 10));
     const btn = document.getElementById('massCallBtn');
     btn.disabled = true;
     btn.textContent = 'Calling...';
@@ -1084,7 +1084,7 @@ window.addEventListener('beforeunload', () => {
             <p class="text-gray-600 text-sm">Select how many tokens to call at once (max 10). The highest-priority waiting tokens will be called.</p>
             <div class="flex items-center gap-3">
                 <label class="font-semibold text-gray-700 whitespace-nowrap">Number to call:</label>
-                <input id="massCallCount" type="number" min="1" max="10" value="5"
+                <input id="massCallCount" type="number" min="1" max="10" value="10"
                     class="w-24 border border-gray-300 rounded-xl px-3 py-2 text-center text-lg font-bold focus:ring-2 focus:ring-orange-400 focus:border-transparent">
             </div>
             <div id="massCallResult" class="hidden bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-800 max-h-40 overflow-y-auto"></div>
