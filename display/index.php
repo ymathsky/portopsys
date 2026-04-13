@@ -630,7 +630,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
 
         .token-number {
             font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-            font-size: clamp(22px, 3.8vw, 52px);
+            font-size: clamp(32px, 5.5vw, 80px);
             font-weight: 900;
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ff6b6b 100%);
             -webkit-background-clip: text;
@@ -1097,7 +1097,7 @@ $alertEnd = $displaySettings['display_alert_gradient_end'] ?? '#f5576c';
                     <div class="token-label">NOW CALLING (${calledTokens.length})</div>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;">
                         ${calledTokens.map(t =>
-                            `<div style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:900;font-size:clamp(12px,1.8vw,20px);padding:5px 10px;border-radius:8px;letter-spacing:1px;">${t}</div>`
+                            `<div style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-weight:900;font-size:clamp(16px,2.8vw,36px);padding:8px 16px;border-radius:10px;letter-spacing:1px;">${t}</div>`
                         ).join('')}
                     </div>
                 </div>`;
