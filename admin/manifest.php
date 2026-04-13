@@ -169,7 +169,7 @@ if ($export === 'csv' && $tripInfo) {
     fputcsv($out, ['Date',      $date]);
     fputcsv($out, ['Status',    strtoupper($tripInfo['trip_status'] ?? 'ON TIME')]);
     fputcsv($out, []);
-    fputcsv($out, ['#', 'Token No.', 'Passenger Name', 'Mobile', 'Email', 'Priority', 'Pax Count', 'Booking Type', 'Service', 'Status', 'Fare Paid (PHP)', 'Issued At', 'Completed At']);
+    fputcsv($out, ['#', 'Token No.', 'Passenger Name', 'Age', 'Sex', 'Place of Origin', 'Mobile', 'Email', 'Priority', 'Pax Count', 'Booking Type', 'Service', 'Status', 'Fare Paid (PHP)', 'Issued At', 'Completed At']);
     $row = 1;
     $totalPax = 0; $totalFare = 0;
     foreach ($manifest as $p) {
@@ -177,6 +177,9 @@ if ($export === 'csv' && $tripInfo) {
             $row++,
             $p['token_number'],
             $p['customer_name']   ?? '(anonymous)',
+            $p['customer_age']    ?? '',
+            $p['customer_sex']    ?? '',
+            $p['customer_place']  ?? '',
             $p['customer_mobile'] ?? '—',
             $p['customer_email']  ?? '—',
             ucfirst($p['priority_type']),
@@ -188,6 +191,22 @@ if ($export === 'csv' && $tripInfo) {
             $p['issued_at']    ? date('Y-m-d H:i', strtotime($p['issued_at']))    : '—',
             $p['completed_at'] ? date('Y-m-d H:i', strtotime($p['completed_at'])) : '—',
         ]);
+        // Also expand extra passengers from passengers_json
+        if (!empty($p['passengers_json'])) {
+            $paxList = json_decode($p['passengers_json'], true);
+            if (is_array($paxList)) {
+                foreach (array_slice($paxList, 1) as $xp) {
+                    fputcsv($out, [
+                        '',
+                        $p['token_number'] . '-extra',
+                        $xp['name'] ?? '',
+                        $xp['age']  ?? '',
+                        $xp['sex']  ?? '',
+                        '', '', '', '', 1, '', '', '', '', '', ''
+                    ]);
+                }
+            }
+        }
         if ($p['status'] !== 'cancelled') {
             $totalPax  += (int)$p['passenger_count'];
             $totalFare += (float)$p['fare_paid'];
@@ -286,6 +305,9 @@ if ($export === 'print' && $tripInfo) {
         <th>#</th>
         <th>Token No.</th>
         <th>Passenger Name</th>
+        <th>Age</th>
+        <th>Sex</th>
+        <th>Place of Origin</th>
         <th>Mobile</th>
         <th>Priority</th>
         <th>Pax</th>
@@ -303,7 +325,19 @@ if ($export === 'print' && $tripInfo) {
       <tr>
         <td><?php echo $i++; ?></td>
         <td style="font-weight:bold;font-family:monospace;"><?php echo htmlspecialchars($p['token_number']); ?></td>
-        <td><?php echo htmlspecialchars($p['customer_name'] ?? '(anonymous)'); ?></td>
+        <td><?php echo htmlspecialchars($p['customer_name'] ?? '(anonymous)'); ?>
+          <?php
+            if (!empty($p['passengers_json'])) {
+                $xpList = json_decode($p['passengers_json'], true);
+                if (is_array($xpList)) foreach (array_slice($xpList, 1) as $xp) {
+                    echo '<div style="font-size:8.5pt;color:#555;margin-top:2px;padding-left:8px;border-left:2px solid #0d9488;">+ '.htmlspecialchars($xp['name'] ?? '').(!empty($xp['age'])?' ('.(int)$xp['age'].')':'').'</div>';
+                }
+            }
+          ?>
+        </td>
+        <td style="text-align:center;"><?php echo $p['customer_age'] ?? '—'; ?></td>
+        <td style="text-transform:capitalize;"><?php echo htmlspecialchars($p['customer_sex'] ?? '—'); ?></td>
+        <td><?php echo htmlspecialchars($p['customer_place'] ?? '—'); ?></td>
         <td><?php echo htmlspecialchars($p['customer_mobile'] ?? '—'); ?></td>
         <td class="priority-<?php echo $p['priority_type']; ?>"><?php echo ucfirst($p['priority_type']); ?></td>
         <td style="text-align:center;"><?php echo $p['passenger_count']; ?></td>
@@ -314,7 +348,7 @@ if ($export === 'print' && $tripInfo) {
       </tr>
       <?php endforeach; ?>
       <tr style="background:#1e293b;color:#fff;font-weight:bold;">
-        <td colspan="5" style="text-align:right;padding:8px 10px;">TOTALS</td>
+        <td colspan="8" style="text-align:right;padding:8px 10px;">TOTALS</td>
         <td style="text-align:center;"><?php echo $paxTotal; ?></td>
         <td colspan="2"></td>
         <td style="text-align:right;">₱<?php echo number_format($fareTotal, 2); ?></td>
@@ -616,6 +650,9 @@ $tokenColors = [
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Token</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Age</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Sex</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Place of Origin</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Mobile</th>
             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Priority</th>
             <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide">Pax</th>
@@ -639,7 +676,27 @@ $tokenColors = [
               <?php if ($p['customer_email']): ?>
               <div class="text-xs text-gray-400"><?php echo htmlspecialchars($p['customer_email']); ?></div>
               <?php endif; ?>
+              <?php
+                $extraPax = [];
+                if (!empty($p['passengers_json'])) {
+                    $decoded = json_decode($p['passengers_json'], true);
+                    if (is_array($decoded)) {
+                        // skip index 0 (lead passenger already shown)
+                        $extraPax = array_slice($decoded, 1);
+                    }
+                }
+                foreach ($extraPax as $xp):
+              ?>
+              <div class="text-xs text-gray-500 mt-0.5 pl-2 border-l-2 border-teal-300">
+                + <?php echo htmlspecialchars($xp['name'] ?? ''); ?>
+                <?php if (!empty($xp['age'])): ?>(<?php echo (int)$xp['age']; ?>)<?php endif; ?>
+                <?php if (!empty($xp['sex'])): ?><span class="capitalize"><?php echo htmlspecialchars($xp['sex']); ?></span><?php endif; ?>
+              </div>
+              <?php endforeach; ?>
             </td>
+            <td class="px-4 py-3 text-center text-gray-700 text-xs"><?php echo $p['customer_age'] ?? '—'; ?></td>
+            <td class="px-4 py-3 text-gray-700 text-xs capitalize"><?php echo htmlspecialchars($p['customer_sex'] ?? '—'); ?></td>
+            <td class="px-4 py-3 text-gray-700 text-xs"><?php echo htmlspecialchars($p['customer_place'] ?? '—'); ?></td>
             <td class="px-4 py-3 text-gray-600 text-xs"><?php echo htmlspecialchars($p['customer_mobile'] ?? '—'); ?></td>
             <td class="px-4 py-3">
               <span class="px-2 py-0.5 rounded-full text-xs font-semibold <?php echo $prCls; ?>">
@@ -662,7 +719,7 @@ $tokenColors = [
         </tbody>
         <tfoot class="bg-gray-50 border-t-2 border-gray-200">
           <tr>
-            <td colspan="5" class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Totals (excl. cancelled)</td>
+            <td colspan="8" class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Totals (excl. cancelled)</td>
             <td class="px-4 py-3 text-center font-bold text-gray-900"><?php echo $manifestPax; ?></td>
             <td colspan="2"></td>
             <td class="px-4 py-3 text-right font-bold text-gray-900">₱<?php echo number_format($manifestFare, 2); ?></td>
